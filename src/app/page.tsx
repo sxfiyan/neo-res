@@ -1,15 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Search,
   Send,
   Database,
   Sparkles,
-  BookOpen,
   User,
-  GraduationCap,
-  Calendar,
   AlertCircle,
   CheckCircle2,
   Trash2,
@@ -17,51 +14,67 @@ import {
   ArrowRight,
   Printer,
   Edit3,
-  ExternalLink,
-  Code,
+  RefreshCw,
+  TrendingUp,
+  Sliders,
+  Layers,
 } from "lucide-react";
 import { StudentFullProfile, CustomRecord, Subject, SemesterResult } from "@/lib/types";
+
+const GRADE_POINTS: Record<string, number> = {
+  O: 10,
+  "A+": 9,
+  A: 8,
+  "B+": 7,
+  B: 6,
+  C: 5,
+  D: 4,
+  F: 0,
+};
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<"get" | "post" | "db">("get");
 
+  // =========================================================================
   // GET State
+  // =========================================================================
   const [searchRegno, setSearchRegno] = useState("20241CCS0134");
   const [isLoading, setIsLoading] = useState(false);
   const [profile, setProfile] = useState<StudentFullProfile | null>(null);
   const [getError, setGetError] = useState<string | null>(null);
   const [requestLog, setRequestLog] = useState<{ url: string; time: number; status: number } | null>(null);
 
-  // POST State
-  const [postRegno, setPostRegno] = useState("");
-  const [postName, setPostName] = useState("");
-  const [postYearmode, setPostYearmode] = useState("D-2026-1");
-  const [postExamname, setPostExamname] = useState("Fourth Semester");
-  const [postSgpa, setPostSgpa] = useState("8.50");
-  const [postCgpa, setPostCgpa] = useState("8.10");
-  const [postCredits, setPostCredits] = useState("24");
+  // =========================================================================
+  // POST State (Auto-Fetch & Auto-Calculate)
+  // =========================================================================
+  const [postRegno, setPostRegno] = useState("20241CCS0134");
+  const [isFetchingPostData, setIsFetchingPostData] = useState(false);
+  const [postFetchedProfile, setPostFetchedProfile] = useState<StudentFullProfile | null>(null);
+  const [selectedSemesterIndex, setSelectedSemesterIndex] = useState<number>(0);
+
+  // Editable fields for POST
+  const [postStudentName, setPostStudentName] = useState("");
+  const [postYearmode, setPostYearmode] = useState("");
+  const [postExamname, setPostExamname] = useState("");
   const [postStatus, setPostStatus] = useState("Updated via POST");
-  const [postNotes, setPostNotes] = useState("Manual revaluation grade update");
-  const [postSubjects, setPostSubjects] = useState<Subject[]>([
-    { slno: 1, subshort: "CCS2504", subname: "Ethical Hacking", no_of_credits: 2, grade: "O" },
-    { slno: 2, subshort: "CSE2262", subname: "Analysis of Algorithms", no_of_credits: 4, grade: "A+" },
-    { slno: 3, subshort: "CSE2269", subname: "Operating Systems", no_of_credits: 3, grade: "A+" },
-  ]);
+  const [postNotes, setPostNotes] = useState("");
+  const [postSubjects, setPostSubjects] = useState<Subject[]>([]);
+
+  // Submission state
   const [isPosting, setIsPosting] = useState(false);
   const [postSuccess, setPostSuccess] = useState<string | null>(null);
   const [postError, setPostError] = useState<string | null>(null);
 
+  // =========================================================================
   // Stored Records State
+  // =========================================================================
   const [storedRecords, setStoredRecords] = useState<CustomRecord[]>([]);
-  const [isLoadingDb, setIsLoadingDb] = useState(false);
 
-  // Load stored records on mount
   useEffect(() => {
     fetchStoredRecords();
   }, []);
 
   const fetchStoredRecords = async () => {
-    setIsLoadingDb(true);
     try {
       const res = await fetch("/api/records");
       const json = await res.json();
@@ -70,12 +83,10 @@ export default function Home() {
       }
     } catch {
       // Ignored
-    } finally {
-      setIsLoadingDb(false);
     }
   };
 
-  // Perform GET request
+  // Perform GET Results
   const handleGetResults = async (regnoToSearch?: string) => {
     const target = (regnoToSearch || searchRegno).trim().toUpperCase();
     if (!target) return;
@@ -108,11 +119,110 @@ export default function Home() {
     }
   };
 
-  // Perform POST request
+  // =========================================================================
+  // Auto-Fetch for POST by Roll Number
+  // =========================================================================
+  const fetchStudentForPost = async (regnoTarget?: string) => {
+    const target = (regnoTarget || postRegno).trim().toUpperCase();
+    if (!target) return;
+
+    setIsFetchingPostData(true);
+    setPostError(null);
+    setPostSuccess(null);
+
+    try {
+      const res = await fetch(`/api/results?regno=${encodeURIComponent(target)}`);
+      const json = await res.json();
+
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || "Could not find student data to load.");
+      }
+
+      const p: StudentFullProfile = json.data;
+      setPostFetchedProfile(p);
+      setPostStudentName(p.student.name || "Student");
+
+      if (p.semesters.length > 0) {
+        setSelectedSemesterIndex(0);
+        applySemesterToPost(p.semesters[0], p.student.name);
+      }
+    } catch (err: any) {
+      setPostError(err.message || "Failed to load student details for auto-update.");
+    } finally {
+      setIsFetchingPostData(false);
+    }
+  };
+
+  // Load a chosen semester's subjects and metadata into the POST form
+  const applySemesterToPost = (sem: SemesterResult, studentName?: string) => {
+    setPostYearmode(sem.yearmode);
+    setPostExamname(sem.examname.replace(" (POST Updated)", ""));
+    setPostStudentName(studentName || postStudentName);
+    setPostNotes(`Auto-calculated grade review for ${sem.examname}`);
+    setPostSubjects(
+      sem.subjects.map((s, idx) => ({
+        slno: s.slno || idx + 1,
+        subshort: s.subshort,
+        subname: s.subname,
+        no_of_credits: s.no_of_credits,
+        grade: s.grade,
+      }))
+    );
+  };
+
+  // Change selected semester from dropdown
+  const handleSemesterDropdownChange = (index: number) => {
+    setSelectedSemesterIndex(index);
+    if (postFetchedProfile && postFetchedProfile.semesters[index]) {
+      applySemesterToPost(postFetchedProfile.semesters[index], postFetchedProfile.student.name);
+    }
+  };
+
+  // =========================================================================
+  // Auto-Calculate SGPA and Credits in Real Time
+  // =========================================================================
+  const { calculatedSGPA, totalRegisteredCredits, totalEarnedCredits } = useMemo(() => {
+    let creditPoints = 0;
+    let regCredits = 0;
+    let earnedCredits = 0;
+
+    for (const sub of postSubjects) {
+      const credits = parseFloat(String(sub.no_of_credits)) || 0;
+      const g = (sub.grade || "").trim().toUpperCase();
+
+      if (g === "S" || credits === 0) {
+        continue;
+      }
+
+      regCredits += credits;
+
+      if (g !== "F" && GRADE_POINTS[g] !== undefined) {
+        earnedCredits += credits;
+      }
+
+      if (GRADE_POINTS[g] !== undefined) {
+        creditPoints += credits * GRADE_POINTS[g];
+      }
+    }
+
+    const sgpa = regCredits > 0 ? (creditPoints / regCredits).toFixed(2) : "0.00";
+
+    return {
+      calculatedSGPA: sgpa,
+      totalRegisteredCredits: regCredits,
+      totalEarnedCredits: earnedCredits,
+    };
+  }, [postSubjects]);
+
+  // Submit POST update
   const handlePostRecord = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!postRegno.trim()) {
       setPostError("Roll number is required.");
+      return;
+    }
+    if (!postYearmode.trim()) {
+      setPostError("Please select a semester option first.");
       return;
     }
 
@@ -122,12 +232,12 @@ export default function Home() {
 
     const payload = {
       regno: postRegno.trim().toUpperCase(),
-      name: postName.trim() || "Student",
-      yearmode: postYearmode.trim() || "D-2026-1",
-      examname: postExamname.trim() || "Fourth Semester",
-      sgpa: postSgpa,
-      cgpa: postCgpa,
-      credits_earned: postCredits,
+      name: postStudentName.trim() || "Student",
+      yearmode: postYearmode.trim(),
+      examname: postExamname.trim() || "Semester",
+      sgpa: calculatedSGPA,
+      cgpa: calculatedSGPA,
+      credits_earned: String(totalEarnedCredits),
       status: postStatus,
       notes: postNotes,
       subjects: postSubjects,
@@ -146,7 +256,9 @@ export default function Home() {
         throw new Error(json.error || "Failed to submit POST record");
       }
 
-      setPostSuccess(`Success! Record persisted for ${json.data.regno} (${json.data.name}) via HTTP POST.`);
+      setPostSuccess(
+        `Success! Record for ${json.data.regno} (${json.data.examname}) updated via POST. Auto-calculated SGPA: ${calculatedSGPA}`
+      );
       fetchStoredRecords();
     } catch (err: any) {
       setPostError(err.message || "Error submitting POST request.");
@@ -155,26 +267,20 @@ export default function Home() {
     }
   };
 
-  // Pre-fill POST form from a fetched result
+  // Pre-fill POST tab from GET results card
   const prefillPostFromProfile = (sem: SemesterResult) => {
     if (!profile) return;
     setPostRegno(profile.regno);
-    setPostName(profile.student.name || "");
-    setPostYearmode(sem.yearmode);
-    setPostExamname(sem.examname.replace(" (POST Updated)", ""));
-    setPostSgpa(String(sem.sgpa || "8.50"));
-    setPostCgpa(String(sem.cgpa || "8.10"));
-    setPostCredits(String(sem.credits_earned || "24"));
-    setPostNotes(`Updated marks for ${profile.student.name}`);
-    setPostSubjects(sem.subjects.length > 0 ? sem.subjects : [
-      { slno: 1, subshort: "COURSE1", subname: "Sample Subject", no_of_credits: 3, grade: "A+" }
-    ]);
+    setPostFetchedProfile(profile);
+    const idx = profile.semesters.findIndex((s) => s.yearmode === sem.yearmode);
+    setSelectedSemesterIndex(idx >= 0 ? idx : 0);
+    applySemesterToPost(sem, profile.student.name);
     setActiveTab("post");
   };
 
-  // Delete a record
+  // Delete stored record
   const handleDeleteRecord = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this custom record?")) return;
+    if (!confirm("Are you sure you want to delete this record?")) return;
     try {
       const res = await fetch(`/api/records?id=${encodeURIComponent(id)}`, { method: "DELETE" });
       const json = await res.json();
@@ -186,28 +292,26 @@ export default function Home() {
     }
   };
 
-  // Add subject row in POST form
+  // Subject table manipulations
   const addSubjectRow = () => {
     setPostSubjects([
       ...postSubjects,
       {
         slno: postSubjects.length + 1,
-        subshort: "CSE" + (2200 + postSubjects.length),
-        subname: "New Course",
+        subshort: "NEW" + (100 + postSubjects.length),
+        subname: "Elective Course",
         no_of_credits: 3,
         grade: "A+",
       },
     ]);
   };
 
-  // Update subject row in POST form
   const updateSubjectRow = (index: number, key: keyof Subject, val: any) => {
     const next = [...postSubjects];
     next[index] = { ...next[index], [key]: val };
     setPostSubjects(next);
   };
 
-  // Remove subject row
   const removeSubjectRow = (index: number) => {
     setPostSubjects(postSubjects.filter((_, i) => i !== index));
   };
@@ -219,8 +323,10 @@ export default function Home() {
     if (g === "A") return "bg-[#22d3ee] text-black border-2 border-black";
     if (g === "B+") return "bg-[#fde047] text-black border-2 border-black";
     if (g === "B") return "bg-[#fb923c] text-black border-2 border-black";
+    if (g === "C") return "bg-[#e2e8f0] text-black border-2 border-black";
+    if (g === "D") return "bg-[#cbd5e1] text-black border-2 border-black";
     if (g === "F") return "bg-[#f87171] text-black border-2 border-black";
-    return "bg-neutral-200 text-black border-2 border-black";
+    return "bg-neutral-100 text-black border-2 border-black";
   };
 
   return (
@@ -231,23 +337,23 @@ export default function Home() {
           <div>
             <div className="inline-flex items-center gap-2 bg-black text-[#ffe600] px-3 py-1 font-mono text-xs font-black uppercase tracking-wider mb-2 neo-border-sm">
               <Sparkles className="w-3.5 h-3.5" />
-              REST API & NEOBRUTALISM CLIENT
+              REST API & AUTO-CALCULATING ENGINE
             </div>
             <h1 className="text-3xl md:text-5xl font-black tracking-tight uppercase">
               ⚡ NEO-RES DATABASE
             </h1>
             <p className="font-bold text-sm md:text-base text-neutral-800 mt-1">
-              Fetch university results with <span className="bg-black text-white px-1.5 py-0.5 font-mono">GET</span> & update records with <span className="bg-[#ff6b8b] text-black px-1.5 py-0.5 font-mono border border-black">POST</span>
+              Query results with <span className="bg-black text-white px-1.5 py-0.5 font-mono">GET</span> & update records with auto-calculated <span className="bg-[#ff6b8b] text-black px-1.5 py-0.5 font-mono border border-black">POST</span>
             </p>
           </div>
 
           <div className="flex flex-wrap gap-2">
             <span className="neo-border-sm bg-white font-mono text-xs font-bold px-3 py-1.5 neo-shadow-sm flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full bg-[#22c55e] inline-block border border-black"></span>
-              API: ONLINE
+              PORTAL: 064
             </span>
             <span className="neo-border-sm bg-[#38bdf8] font-mono text-xs font-bold px-3 py-1.5 neo-shadow-sm flex items-center gap-1.5">
-              UNIV: 064
+              AUTO-SGPA: ON
             </span>
           </div>
         </div>
@@ -267,7 +373,12 @@ export default function Home() {
           </button>
 
           <button
-            onClick={() => setActiveTab("post")}
+            onClick={() => {
+              setActiveTab("post");
+              if (!postFetchedProfile && postRegno) {
+                fetchStudentForPost();
+              }
+            }}
             className={`neo-btn px-5 py-2.5 text-sm md:text-base flex items-center gap-2 ${
               activeTab === "post"
                 ? "bg-[#ff6b8b] text-black translate-x-1 translate-y-1 shadow-none"
@@ -275,7 +386,7 @@ export default function Home() {
             }`}
           >
             <Send className="w-4 h-4" />
-            [POST] UPDATE RECORD
+            [POST] UPDATE RECORD (AUTO-CALCULATED)
           </button>
 
           <button
@@ -300,7 +411,6 @@ export default function Home() {
       {/* ========================================================================= */}
       {activeTab === "get" && (
         <section className="space-y-8">
-          {/* Search Box */}
           <div className="neo-border bg-white p-6 neo-shadow">
             <div className="flex items-center gap-2 mb-2 font-mono text-xs font-black uppercase text-neutral-600">
               <span className="bg-[#ffe600] text-black px-2 py-0.5 border border-black">HTTP GET</span>
@@ -383,7 +493,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Request Telemetry / Terminal */}
           {requestLog && (
             <div className="neo-border bg-black text-[#4ade80] font-mono text-xs p-3 neo-shadow-sm flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2">
@@ -396,7 +505,6 @@ export default function Home() {
             </div>
           )}
 
-          {/* Error Message */}
           {getError && (
             <div className="neo-border bg-[#fee2e2] text-red-900 p-5 neo-shadow flex items-start gap-3">
               <AlertCircle className="w-6 h-6 text-red-600 shrink-0 mt-0.5" />
@@ -407,7 +515,6 @@ export default function Home() {
             </div>
           )}
 
-          {/* Results Display */}
           {profile && (
             <div className="space-y-6">
               {/* Student Profile Card */}
@@ -568,23 +675,71 @@ export default function Home() {
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 2: POST - UPDATE RECORDS */}
+      {/* TAB 2: POST - UPDATE RECORDS (AUTO-FETCH & AUTO-CALCULATE) */}
       {/* ========================================================================= */}
       {activeTab === "post" && (
         <section className="space-y-8">
           <div className="neo-border bg-white p-6 neo-shadow-lg">
             <div className="flex items-center gap-2 mb-2 font-mono text-xs font-black uppercase text-neutral-600">
               <span className="bg-[#ff6b8b] text-black px-2 py-0.5 border border-black">HTTP POST</span>
-              /api/records
+              AUTO-CALCULATED RECORD UPDATER
             </div>
 
             <h2 className="text-2xl md:text-3xl font-black uppercase mb-1">
-              Update Student Academic Record
+              Update Student Records
             </h2>
             <p className="text-sm font-medium text-neutral-600 mb-6">
-              This form transmits an HTTP POST payload to the backend database to create or update student grades and review notes.
+              Just enter a <strong>Roll Number</strong> — the app automatically loads existing semesters, fetches all courses, and <strong>calculates SGPA & credits live</strong> as you tweak grades!
             </p>
 
+            {/* Step 1: Just Enter Roll Number */}
+            <div className="neo-border bg-[#fffdf0] p-5 neo-shadow-sm mb-6">
+              <label className="block font-mono text-xs font-black uppercase mb-2">
+                1. Enter Roll Number to Load Existing Data
+              </label>
+
+              <div className="flex flex-col sm:flex-row gap-3">
+                <input
+                  type="text"
+                  value={postRegno}
+                  onChange={(e) => setPostRegno(e.target.value)}
+                  placeholder="e.g. 20241CCS0134"
+                  className="flex-1 neo-border px-4 py-3 font-mono text-base font-bold uppercase bg-white focus:outline-none focus:bg-[#ff6b8b]/15"
+                />
+
+                <button
+                  type="button"
+                  onClick={() => fetchStudentForPost()}
+                  disabled={isFetchingPostData}
+                  className="neo-btn bg-[#ffe600] text-black px-6 py-3 font-mono text-xs font-black flex items-center justify-center gap-2 shrink-0"
+                >
+                  {isFetchingPostData ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      FETCHING DATA...
+                    </>
+                  ) : (
+                    <>
+                      <Search className="w-4 h-4" />
+                      LOAD STUDENT & SEMESTERS
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {postFetchedProfile && (
+                <div className="mt-3 flex flex-wrap items-center gap-2 font-mono text-xs">
+                  <span className="bg-black text-[#ffe600] px-2 py-0.5 font-bold">
+                    FOUND: {postFetchedProfile.student.name}
+                  </span>
+                  <span className="bg-white border-2 border-black px-2 py-0.5 font-bold">
+                    {postFetchedProfile.semesters.length} Semesters Available
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Notifications */}
             {postSuccess && (
               <div className="neo-border bg-[#dcfce7] text-green-900 p-4 mb-6 neo-shadow-sm flex items-center gap-3">
                 <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0" />
@@ -599,198 +754,209 @@ export default function Home() {
               </div>
             )}
 
-            <form onSubmit={handlePostRecord} className="space-y-6">
-              {/* Primary Info */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block font-mono text-xs font-black uppercase mb-1">
-                    Roll / Registration Number *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={postRegno}
-                    onChange={(e) => setPostRegno(e.target.value)}
-                    placeholder="e.g. 20241CCS0134"
-                    className="w-full neo-border px-3.5 py-2.5 font-mono font-bold bg-[#fffdf0] uppercase focus:outline-none focus:bg-[#ff6b8b]/15"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-mono text-xs font-black uppercase mb-1">
-                    Student Full Name
-                  </label>
-                  <input
-                    type="text"
-                    value={postName}
-                    onChange={(e) => setPostName(e.target.value)}
-                    placeholder="e.g. SUFIYAN KHAN"
-                    className="w-full neo-border px-3.5 py-2.5 font-sans font-bold bg-[#fffdf0] focus:outline-none focus:bg-[#ff6b8b]/15"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-mono text-xs font-black uppercase mb-1">
-                    Yearmode / Exam Cycle
-                  </label>
-                  <input
-                    type="text"
-                    value={postYearmode}
-                    onChange={(e) => setPostYearmode(e.target.value)}
-                    placeholder="e.g. D-2026-1"
-                    className="w-full neo-border px-3.5 py-2.5 font-mono font-bold bg-[#fffdf0] focus:outline-none focus:bg-[#ff6b8b]/15"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-mono text-xs font-black uppercase mb-1">
-                    Semester Name
-                  </label>
-                  <input
-                    type="text"
-                    value={postExamname}
-                    onChange={(e) => setPostExamname(e.target.value)}
-                    placeholder="e.g. Fourth Semester"
-                    className="w-full neo-border px-3.5 py-2.5 font-sans font-bold bg-[#fffdf0] focus:outline-none focus:bg-[#ff6b8b]/15"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-mono text-xs font-black uppercase mb-1">
-                    SGPA
-                  </label>
-                  <input
-                    type="text"
-                    value={postSgpa}
-                    onChange={(e) => setPostSgpa(e.target.value)}
-                    className="w-full neo-border px-3.5 py-2.5 font-mono font-bold bg-[#fffdf0] focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-mono text-xs font-black uppercase mb-1">
-                    CGPA
-                  </label>
-                  <input
-                    type="text"
-                    value={postCgpa}
-                    onChange={(e) => setPostCgpa(e.target.value)}
-                    className="w-full neo-border px-3.5 py-2.5 font-mono font-bold bg-[#fffdf0] focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block font-mono text-xs font-black uppercase mb-1">
-                  Status & Notes
+            {/* Step 2: Pick Semester Options Dropdown */}
+            {postFetchedProfile && postFetchedProfile.semesters.length > 0 && (
+              <div className="neo-border bg-[#eff6ff] p-5 neo-shadow-sm mb-6">
+                <label className="block font-mono text-xs font-black uppercase mb-2 flex items-center gap-1.5 text-blue-900">
+                  <Layers className="w-4 h-4" />
+                  2. Select Which Semester to Update (No Need to Remember Yearmode!)
                 </label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <input
-                    type="text"
-                    value={postStatus}
-                    onChange={(e) => setPostStatus(e.target.value)}
-                    placeholder="e.g. Verified via Revaluation"
-                    className="neo-border px-3.5 py-2.5 font-mono text-xs font-bold bg-[#fffdf0]"
-                  />
-                  <input
-                    type="text"
-                    value={postNotes}
-                    onChange={(e) => setPostNotes(e.target.value)}
-                    placeholder="e.g. Internal review completed"
-                    className="neo-border px-3.5 py-2.5 font-mono text-xs font-bold bg-[#fffdf0]"
-                  />
-                </div>
-              </div>
 
-              {/* Subject Breakdown Manager */}
-              <div className="pt-4 border-t-3 border-black">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-mono text-sm font-black uppercase">
-                    Subject Marks / Grades List ({postSubjects.length})
-                  </h3>
-                  <button
-                    type="button"
-                    onClick={addSubjectRow}
-                    className="neo-btn bg-[#ffe600] px-3 py-1.5 text-xs font-mono font-bold flex items-center gap-1"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    ADD SUBJECT
-                  </button>
-                </div>
-
-                <div className="space-y-2">
-                  {postSubjects.map((sub, idx) => (
-                    <div
-                      key={idx}
-                      className="neo-border-sm bg-[#fafafa] p-3 flex flex-col sm:flex-row items-center gap-2"
-                    >
-                      <input
-                        type="text"
-                        value={sub.subshort}
-                        onChange={(e) => updateSubjectRow(idx, "subshort", e.target.value)}
-                        placeholder="Code"
-                        className="neo-border-sm px-2 py-1.5 font-mono text-xs font-bold uppercase w-full sm:w-28 bg-white"
-                      />
-                      <input
-                        type="text"
-                        value={sub.subname}
-                        onChange={(e) => updateSubjectRow(idx, "subname", e.target.value)}
-                        placeholder="Course Name"
-                        className="neo-border-sm px-2 py-1.5 font-sans text-xs font-bold flex-1 w-full bg-white"
-                      />
-                      <input
-                        type="number"
-                        value={sub.no_of_credits}
-                        onChange={(e) => updateSubjectRow(idx, "no_of_credits", e.target.value)}
-                        placeholder="Credits"
-                        className="neo-border-sm px-2 py-1.5 font-mono text-xs font-bold w-full sm:w-20 text-center bg-white"
-                      />
-                      <select
-                        value={sub.grade}
-                        onChange={(e) => updateSubjectRow(idx, "grade", e.target.value)}
-                        className="neo-border-sm px-2 py-1.5 font-mono text-xs font-black w-full sm:w-20 bg-white"
-                      >
-                        <option value="O">O (10)</option>
-                        <option value="A+">A+ (9)</option>
-                        <option value="A">A (8)</option>
-                        <option value="B+">B+ (7)</option>
-                        <option value="B">B (6)</option>
-                        <option value="C">C (5)</option>
-                        <option value="D">D (4)</option>
-                        <option value="F">F (0)</option>
-                        <option value="S">S (Pass)</option>
-                      </select>
-                      <button
-                        type="button"
-                        onClick={() => removeSubjectRow(idx)}
-                        className="p-1.5 text-red-600 hover:bg-red-100 neo-border-sm border-transparent hover:border-black shrink-0"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
+                <select
+                  value={selectedSemesterIndex}
+                  onChange={(e) => handleSemesterDropdownChange(Number(e.target.value))}
+                  className="w-full neo-border px-4 py-3 font-mono text-sm font-bold bg-white focus:outline-none focus:bg-yellow-50 cursor-pointer"
+                >
+                  {postFetchedProfile.semesters.map((sem, idx) => (
+                    <option key={idx} value={idx}>
+                      {sem.examname} ({sem.yearmode}) — {sem.subjects.length} Subjects | Current SGPA: {sem.sgpa || "—"}
+                    </option>
                   ))}
-                </div>
+                </select>
               </div>
+            )}
 
-              {/* Submit Button */}
-              <button
-                type="submit"
-                disabled={isPosting}
-                className="neo-btn bg-[#ff6b8b] text-black w-full py-4 text-lg font-black uppercase flex items-center justify-center gap-2 neo-shadow"
-              >
-                {isPosting ? (
-                  <>
-                    <span className="animate-spin text-xl">⚡</span>
-                    DISPATCHING HTTP POST...
-                  </>
-                ) : (
-                  <>
-                    <Send className="w-5 h-5" />
-                    DISPATCH HTTP POST TO UPDATE DATABASE
-                  </>
-                )}
-              </button>
-            </form>
+            {/* Step 3: Editable Form with Live Auto-Calculations */}
+            {postSubjects.length > 0 && (
+              <form onSubmit={handlePostRecord} className="space-y-6">
+                {/* Real-time Calculated Metrics Dashboard */}
+                <div className="neo-border bg-[#fefce8] p-5 neo-shadow">
+                  <div className="flex items-center gap-2 mb-3 font-mono text-xs font-black uppercase text-neutral-800">
+                    <TrendingUp className="w-4 h-4 text-emerald-600" />
+                    LIVE AUTO-CALCULATED METRICS (Calculates automatically as you edit grades!)
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <div className="neo-border bg-white p-3 text-center neo-shadow-sm">
+                      <span className="block font-mono text-[11px] font-bold text-neutral-500 uppercase">
+                        Auto-Calculated SGPA
+                      </span>
+                      <span className="text-3xl font-black text-emerald-700 font-mono">
+                        {calculatedSGPA}
+                      </span>
+                    </div>
+
+                    <div className="neo-border bg-white p-3 text-center neo-shadow-sm">
+                      <span className="block font-mono text-[11px] font-bold text-neutral-500 uppercase">
+                        Credits Earned
+                      </span>
+                      <span className="text-3xl font-black text-black font-mono">
+                        {totalEarnedCredits} / {totalRegisteredCredits}
+                      </span>
+                    </div>
+
+                    <div className="neo-border bg-white p-3 text-center neo-shadow-sm col-span-2 sm:col-span-1">
+                      <span className="block font-mono text-[11px] font-bold text-neutral-500 uppercase">
+                        Selected Cycle
+                      </span>
+                      <span className="text-lg font-black text-blue-900 font-mono mt-1 block">
+                        {postYearmode}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Additional Metadata */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-mono text-xs font-black uppercase mb-1">
+                      Status / Tag
+                    </label>
+                    <input
+                      type="text"
+                      value={postStatus}
+                      onChange={(e) => setPostStatus(e.target.value)}
+                      placeholder="e.g. Revaluation Updated"
+                      className="w-full neo-border px-3.5 py-2 font-mono text-xs font-bold bg-[#fffdf0]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-mono text-xs font-black uppercase mb-1">
+                      Update Notes
+                    </label>
+                    <input
+                      type="text"
+                      value={postNotes}
+                      onChange={(e) => setPostNotes(e.target.value)}
+                      placeholder="e.g. Updated DSA Lab after recheck"
+                      className="w-full neo-border px-3.5 py-2 font-mono text-xs font-bold bg-[#fffdf0]"
+                    />
+                  </div>
+                </div>
+
+                {/* Subject List with Instant Grade Adjuster */}
+                <div className="pt-2 border-t-3 border-black">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-mono text-sm font-black uppercase flex items-center gap-2">
+                      <Sliders className="w-4 h-4" />
+                      3. Tweak Course Grades (SGPA will recalculate live!)
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={addSubjectRow}
+                      className="neo-btn bg-[#ffe600] px-3 py-1.5 text-xs font-mono font-bold flex items-center gap-1"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      ADD SUBJECT
+                    </button>
+                  </div>
+
+                  <div className="space-y-2">
+                    {postSubjects.map((sub, idx) => (
+                      <div
+                        key={idx}
+                        className="neo-border-sm bg-white p-3 flex flex-col sm:flex-row items-center gap-2 neo-shadow-sm"
+                      >
+                        <span className="font-mono text-xs font-black text-neutral-400 w-6 text-center shrink-0">
+                          #{idx + 1}
+                        </span>
+
+                        <input
+                          type="text"
+                          value={sub.subshort}
+                          onChange={(e) => updateSubjectRow(idx, "subshort", e.target.value)}
+                          placeholder="Code"
+                          className="neo-border-sm px-2 py-1.5 font-mono text-xs font-bold uppercase w-full sm:w-28 bg-[#fafafa]"
+                        />
+
+                        <input
+                          type="text"
+                          value={sub.subname}
+                          onChange={(e) => updateSubjectRow(idx, "subname", e.target.value)}
+                          placeholder="Course Title"
+                          className="neo-border-sm px-2 py-1.5 font-sans text-xs font-bold flex-1 w-full bg-[#fafafa]"
+                        />
+
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span className="font-mono text-[10px] uppercase font-bold text-neutral-500">
+                            Credits:
+                          </span>
+                          <input
+                            type="number"
+                            value={sub.no_of_credits}
+                            onChange={(e) => updateSubjectRow(idx, "no_of_credits", e.target.value)}
+                            placeholder="Credits"
+                            className="neo-border-sm px-2 py-1.5 font-mono text-xs font-bold w-16 text-center bg-white"
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span className="font-mono text-[10px] uppercase font-bold text-neutral-500">
+                            Grade:
+                          </span>
+                          <select
+                            value={sub.grade}
+                            onChange={(e) => updateSubjectRow(idx, "grade", e.target.value)}
+                            className={`neo-border-sm px-3 py-1.5 font-mono text-xs font-black w-24 cursor-pointer ${getGradeBadge(
+                              sub.grade
+                            )}`}
+                          >
+                            <option value="O">O (10)</option>
+                            <option value="A+">A+ (9)</option>
+                            <option value="A">A (8)</option>
+                            <option value="B+">B+ (7)</option>
+                            <option value="B">B (6)</option>
+                            <option value="C">C (5)</option>
+                            <option value="D">D (4)</option>
+                            <option value="F">F (0)</option>
+                            <option value="S">S (Pass)</option>
+                          </select>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => removeSubjectRow(idx)}
+                          className="p-1.5 text-red-600 hover:bg-red-100 neo-border-sm border-transparent hover:border-black shrink-0"
+                          title="Remove subject"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Submit POST Button */}
+                <button
+                  type="submit"
+                  disabled={isPosting}
+                  className="neo-btn bg-[#ff6b8b] text-black w-full py-4 text-lg font-black uppercase flex items-center justify-center gap-2 neo-shadow"
+                >
+                  {isPosting ? (
+                    <>
+                      <span className="animate-spin text-xl">⚡</span>
+                      PERSISTING VIA HTTP POST...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-5 h-5" />
+                      SAVE & PERSIST TO DATABASE (SGPA: {calculatedSGPA})
+                    </>
+                  )}
+                </button>
+              </form>
+            )}
           </div>
         </section>
       )}
@@ -804,10 +970,10 @@ export default function Home() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b-3 border-black gap-3 mb-6">
               <div>
                 <span className="bg-[#38bdf8] text-black px-2 py-0.5 border border-black font-mono text-xs font-black uppercase">
-                  LOCAL DATABASE
+                  PERSISTED DATABASE
                 </span>
                 <h2 className="text-2xl md:text-3xl font-black uppercase mt-1">
-                  Persisted POST Records ({storedRecords.length})
+                  Stored Records ({storedRecords.length})
                 </h2>
                 <p className="text-xs font-mono text-neutral-600">
                   These records have been persisted to the server store via HTTP POST requests.
