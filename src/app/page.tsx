@@ -665,17 +665,6 @@ export default function Home() {
         </section>
       )}
 
-      {/* =========================================================================
-          FOOTER
-          ========================================================================= */}
-      <footer className="mt-12 neu-card p-6 font-mono text-xs flex flex-col sm:flex-row items-center justify-between gap-4 text-neutral-500">
-        <div>
-          <span className="text-current font-bold">NEO-RES SUITE</span> &bull; Pure Monochrome Neomorphism
-        </div>
-        <div>
-          Built for pair programming with Antigravity
-        </div>
-      </footer>
     </div>
   );
 }
