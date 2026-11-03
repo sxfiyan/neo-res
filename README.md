@@ -1,42 +1,41 @@
-# ⚡ NEO-RES // Comprehensive University Student Suite
+# ⚡ NEO-RES // Pure Black & White Neomorphism Suite
 
-A **Neobrutalism-styled** web portal built with **Next.js 16 (App Router)** and **Tailwind CSS**, transforming the UNICLARE / COE backend functions into a modern, full-featured student suite.
+A **Neomorphism (Soft UI)** web portal built with **Next.js 16 (App Router)** and **Tailwind CSS**, styled exclusively with **pure black and white (monochrome)** tactile 3D embossed and debossed surfaces.
+
+---
+
+## 🎨 Design System: Pure Black & White Neomorphism
+* **Extruded 3D Surfaces (`neu-card`, `neu-flat`):** Soft dual-shadow relief that emerges seamlessly from the background.
+* **Debossed / Sunken Wells (`neu-inset`):** Inset sensory depth for inputs, telemetry, and active navigation states.
+* **Tactile Buttons (`neu-btn`):** Physical button feedback that transitions smoothly from raised to pressed on interaction.
+* **Strict Monochrome:** Pure blacks, whites, and subtle tactile grays — zero external colors.
+* **Dark & Light Mode Switcher:** Toggle between Dark Obsidian Neomorphism and Silver White Neomorphism with one click.
 
 ---
 
 ## 🚀 Features
 
 ### 1. 📊 Semester Grade Cards & SGPA/CGPA Engine (`getDetailedResults`)
-* **Live Roll Number Lookup:** Queries student examination cycles in parallel using session tokens.
-* **Student Identity Card:** Photo, student name, university degree, college name, and parents' details.
-* **Academic Performance:** Registered Credits, Earned Credits, **SGPA**, and **CGPA**.
-* **Subject Breakdown Table:** Course codes, course names, credits, and retro Neobrutalist grade badges (`O`, `A+`, `A`, `B+`, `B`, `F`).
-* **Print / Save as PDF:** Clean print styles for grade card export.
+* **Student Identity Card:** Photo, student name, university program, college, and parents' details.
+* **Academic Performance:** Registered Credits, Earned Credits, **SGPA**, and **CGPA** in tactile inset wells.
+* **Subject Breakdown Table:** Course codes, titles, credits, and monochromatic Neomorphic grade badges (`O`, `A+`, `A`, `B+`, `B`, `F`).
+* **Print / Save as PDF:** One-click clean A4 printable export.
 
 ### 2. 🎯 Raw Component-Wise Marks Inspector (`getBriefResults`)
-* **Unveils Internal & External Assessment Marks:** Unlocks raw marks that students usually don't see on the standard grade card:
+* **Unveils Internal & External Assessment Scores:**
   * **End-Term Exam Marks**
   * **Mid-Term Exam Marks**
   * **Continuous Assessment (CA) Marks**
-  * **Practical Lab Scores** (e.g. 97/100, 94/100, 45.5/50)
-* **Semester Switcher:** Inspect assessment breakdowns across any semester.
+  * **Practical Lab Scores**
+* **Semester Switcher:** Toggle between any semester to inspect raw scores.
 
-### 3. ⏳ Academic Timeline & Degree Progression (`getResultSummaryDetailsnew`)
-* **Degree History & Milestones:** Chronological transcript across all examination cycles (`D-2026-1`, `C-2025-4`, `B-2025-1`, `A-2024-4`).
-* **Official Publication Dates:** Precise result publication and examination session dates (`01/07/2026`, `03/02/2026`, `14/07/2025`, `28/04/2026`).
-* **Result Status:** Verification tags and class standing.
+### 3. ⏳ Degree Timeline & Examination Milestones (`getResultSummaryDetailsnew`)
+* **Transcript Milestones:** Chronological milestones across all examination cycles (`D-2026-1`, `C-2025-4`, `B-2025-1`, `A-2024-4`).
+* **Official Publication Dates:** Precise result publication dates and verified class standings.
 
-### 4. ⚖️ Re-Evaluation (RV) & Challenge Portal (`showRVExam`)
-* **Review-Eligible Exam Cycles:** Direct lookup of examination sessions mapped for review.
-* **Academic Regulations (Clause 13.2):** Official rules regarding the 5-working-day review window, photocopy guidelines, and grading scales.
-
----
-
-## 🛠️ Tech Stack
-* **Framework:** Next.js 16 (App Router)
-* **Styling:** Tailwind CSS with custom Neobrutalism utilities
-* **Icons:** Lucide React
-* **Backend:** Next.js Route Handlers (`/api/results`)
+### 4. ⚖️ Re-Evaluation (RV) & Regulations Portal (`showRVExam`)
+* **Review-Eligible Exam Cycles:** Direct lookup of examination sessions open for challenge review.
+* **Academic Regulations (Clause 13.2):** Official rules regarding the 5-working-day review window and digital answer script view.
 
 ---
 
