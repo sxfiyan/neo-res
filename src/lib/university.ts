@@ -1,4 +1,11 @@
-import { SemesterResult, StudentDetail, StudentFullProfile, Subject } from "./types";
+import {
+  SemesterHistoryItem,
+  SemesterResult,
+  StudentDetail,
+  StudentFullProfile,
+  Subject,
+  SubjectComponentMarks,
+} from "./types";
 
 // Disable strict SSL verification for the COE portal which has missing intermediate CA chain (equivalent to curl -k)
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
@@ -54,13 +61,108 @@ export async function fetchStudentToken(regno: string): Promise<string> {
 }
 
 /**
+ * Fetches historical result summary timeline via getResultSummaryDetailsnew
+ */
+export async function fetchResultSummaryHistory(
+  token: string,
+  regno: string
+): Promise<SemesterHistoryItem[]> {
+  const url = `${BASE_URL}?db=pub&a=getResultSummaryDetailsnew&regno=${encodeURIComponent(
+    regno
+  )}&univcode=${UNIV_CODE}`;
+
+  try {
+    const res = await fetch(url, {
+      headers: {
+        Authorization: token,
+        "X-Auth-Origin": "UNICLARE",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+      },
+      cache: "no-store",
+    });
+
+    if (!res.ok) return [];
+
+    const json = await res.json();
+    if (json?.error_code === 0 && Array.isArray(json?.data)) {
+      return json.data.map((item: any, idx: number) => ({
+        key: item.key ?? idx,
+        yearmode: item.yearmode || item["2"] || "",
+        examname: item.examname || item["5"] || "",
+        examdate: item.examdate || item["4"] || "",
+        resdate: item.resdate || item["6"] || "",
+        classStatus: item.class || item["0"] || "Pass",
+        degree: item.degree || item["8"] || "",
+        college: item.college || item["9"] || "",
+        color: item.color || "#ffe600",
+      }));
+    }
+  } catch {
+    // Graceful fallback
+  }
+
+  return [];
+}
+
+/**
+ * Fetches raw component-wise marks (End Term, Mid Term, CA, Practicals) via getBriefResults
+ */
+export async function fetchBriefResults(
+  token: string,
+  regno: string,
+  yearmode: string
+): Promise<SubjectComponentMarks[]> {
+  const url = `${BASE_URL}?db=pub&a=getBriefResults&regno=${encodeURIComponent(
+    regno
+  )}&univcode=${UNIV_CODE}&yearmode=${encodeURIComponent(yearmode)}`;
+
+  try {
+    const res = await fetch(url, {
+      headers: {
+        Authorization: token,
+        "X-Auth-Origin": "UNICLARE",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+      },
+      cache: "no-store",
+    });
+
+    if (!res.ok) return [];
+
+    const json = await res.json();
+    if (json?.error_code === 0 && json?.data?.data && Array.isArray(json.data.data)) {
+      return json.data.data.map((item: any, idx: number) => {
+        const components: Array<{ component: string; score: string }> = [];
+        const subnames = Array.isArray(item.ssubname) ? item.ssubname : [item.ssubname || "Total"];
+        const marks = Array.isArray(item.marks) ? item.marks : [item.marks || "—"];
+
+        for (let i = 0; i < subnames.length; i++) {
+          components.push({
+            component: String(subnames[i] || `Component ${i + 1}`),
+            score: String(marks[i] !== undefined ? marks[i] : "—"),
+          });
+        }
+
+        return {
+          slno: item.slno || idx + 1,
+          subname: item.subname || "Course",
+          components,
+        };
+      });
+    }
+  } catch {
+    // Graceful fallback
+  }
+
+  return [];
+}
+
+/**
  * Fetches all available examination sessions for a student
  */
 export async function fetchStudentExams(
   token: string,
   regno: string
 ): Promise<Array<{ yearmode: string; examname: string; examdate?: string; name?: string }>> {
-  // Notice the two trailing spaces in the action name verified from backend routes
   const url = `${BASE_URL}?db=pub&a=showRVExam%20%20&regno=${encodeURIComponent(
     regno
   )}&univcode=${UNIV_CODE}`;
@@ -74,9 +176,7 @@ export async function fetchStudentExams(
     cache: "no-store",
   });
 
-  if (!res.ok) {
-    return [];
-  }
+  if (!res.ok) return [];
 
   try {
     const json = await res.json();
@@ -89,14 +189,14 @@ export async function fetchStudentExams(
       }));
     }
   } catch {
-    // If not JSON or failed
+    // Fallback
   }
 
   return [];
 }
 
 /**
- * Fetches detailed results for a specific yearmode
+ * Fetches detailed results and component-wise marks for a specific yearmode
  */
 export async function fetchSemesterDetails(
   token: string,
@@ -124,6 +224,9 @@ export async function fetchSemesterDetails(
   const data = json.data;
   const stud = data.studdet || {};
   const metrics = parseRow1Metrics(data.row1);
+
+  // Fetch component-wise raw marks concurrently
+  const componentMarks = await fetchBriefResults(token, regno, yearmode);
 
   const student: StudentDetail = {
     regno: stud.regno || regno,
@@ -156,19 +259,24 @@ export async function fetchSemesterDetails(
     sgpa: metrics.sgpa,
     cgpa: metrics.cgpa,
     subjects,
+    componentMarks,
   };
 
   return { student, result };
 }
 
 /**
- * Fetches the entire student profile across all semesters
+ * Fetches the entire student profile across all semesters + historical timeline
  */
 export async function fetchAllStudentResults(regno: string): Promise<StudentFullProfile> {
   const normRegno = regno.trim().toUpperCase();
   const token = await fetchStudentToken(normRegno);
 
-  const exams = await fetchStudentExams(token, normRegno);
+  // Run history & exam listings in parallel
+  const [history, exams] = await Promise.all([
+    fetchResultSummaryHistory(token, normRegno),
+    fetchStudentExams(token, normRegno),
+  ]);
 
   const semesters: SemesterResult[] = [];
   let studentDetail: StudentDetail = {
@@ -176,43 +284,30 @@ export async function fetchAllStudentResults(regno: string): Promise<StudentFull
     name: "Student",
   };
 
-  if (exams.length > 0) {
-    // Query each exam cycle in parallel
-    const details = await Promise.all(
-      exams.map(async (exam) => {
-        if (!exam.yearmode) return null;
-        try {
-          return await fetchSemesterDetails(token, normRegno, exam.yearmode);
-        } catch {
-          return null;
-        }
-      })
-    );
+  const cyclesToFetch =
+    exams.length > 0
+      ? exams
+      : history.length > 0
+      ? history.map((h) => ({ yearmode: h.yearmode, examname: h.examname }))
+      : [{ yearmode: "D-2026-1", examname: "Fourth Semester" }];
 
-    for (const d of details) {
-      if (d) {
-        if (d.student.name && (!studentDetail.name || studentDetail.name === "Student")) {
-          studentDetail = d.student;
-        }
-        semesters.push(d.result);
-      }
-    }
-  }
-
-  // Fallback: If showRVExam returned no exams, try standard yearmodes
-  if (semesters.length === 0) {
-    const fallbackModes = ["D-2026-1", "B-2026-1", "C-2025-4", "B-2025-1", "A-2024-4"];
-    for (const mode of fallbackModes) {
+  const details = await Promise.all(
+    cyclesToFetch.map(async (exam) => {
+      if (!exam.yearmode) return null;
       try {
-        const d = await fetchSemesterDetails(token, normRegno, mode);
-        if (d) {
-          studentDetail = d.student;
-          semesters.push(d.result);
-          break;
-        }
+        return await fetchSemesterDetails(token, normRegno, exam.yearmode);
       } catch {
-        // Continue
+        return null;
       }
+    })
+  );
+
+  for (const d of details) {
+    if (d) {
+      if (d.student.name && (!studentDetail.name || studentDetail.name === "Student")) {
+        studentDetail = d.student;
+      }
+      semesters.push(d.result);
     }
   }
 
@@ -224,6 +319,7 @@ export async function fetchAllStudentResults(regno: string): Promise<StudentFull
     regno: normRegno,
     student: studentDetail,
     semesters,
+    history,
     lastUpdated: new Date().toISOString(),
   };
 }

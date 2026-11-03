@@ -6,6 +6,17 @@ export interface Subject {
   grade: string;
 }
 
+export interface ComponentMark {
+  component: string;
+  score: string;
+}
+
+export interface SubjectComponentMarks {
+  slno: number;
+  subname: string;
+  components: ComponentMark[];
+}
+
 export interface StudentDetail {
   regno: string;
   name: string;
@@ -29,27 +40,25 @@ export interface SemesterResult {
   sgpa?: string | number;
   cgpa?: string | number;
   subjects: Subject[];
-  isCustomOverride?: boolean;
+  componentMarks?: SubjectComponentMarks[];
+}
+
+export interface SemesterHistoryItem {
+  key?: number;
+  yearmode: string;
+  examname: string;
+  examdate: string;
+  resdate: string;
+  classStatus: string;
+  degree: string;
+  college: string;
+  color?: string;
 }
 
 export interface StudentFullProfile {
   regno: string;
   student: StudentDetail;
   semesters: SemesterResult[];
+  history: SemesterHistoryItem[];
   lastUpdated?: string;
-}
-
-export interface CustomRecord {
-  id: string;
-  regno: string;
-  name: string;
-  yearmode: string;
-  examname: string;
-  sgpa: string;
-  cgpa: string;
-  credits_earned: string;
-  status: string;
-  notes?: string;
-  subjects: Subject[];
-  updatedAt: string;
 }

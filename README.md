@@ -1,63 +1,57 @@
-# ⚡ NEO-RES // Results & Record Management Engine
+# ⚡ NEO-RES // Comprehensive University Student Suite
 
-A **Neobrutalism-styled** web application built with **Next.js 16 (App Router)** and **Tailwind CSS**, designed for student result exploration and record management.
+A **Neobrutalism-styled** web portal built with **Next.js 16 (App Router)** and **Tailwind CSS**, transforming the UNICLARE / COE backend functions into a modern, full-featured student suite.
 
 ---
 
 ## 🚀 Features
 
-### 1. 🔍 [HTTP GET] Student Results Engine
-* **Instant Roll Number Lookup:** Enter a university registration number (e.g., `20241CCS0134`, `20241CCS0167`, `20251CCS0103`).
-* **Multi-Semester Aggregation:** Queries all active semester examination cycles in parallel using internal tokens.
-* **Detailed Academic Metrics:**
-  * Cumulative Credits Registered & Earned
-  * **SGPA** (Semester Grade Point Average)
-  * **CGPA** (Cumulative Grade Point Average)
-* **Subject Breakdown Table:** Course code, subject title, credit weighting, and color-coded retro brutalist grade badges (`O`, `A+`, `A`, `B+`, `B`, `F`).
-* **Print / PDF Grade Card:** Clean print styling for export.
+### 1. 📊 Semester Grade Cards & SGPA/CGPA Engine (`getDetailedResults`)
+* **Live Roll Number Lookup:** Queries student examination cycles in parallel using session tokens.
+* **Student Identity Card:** Photo, student name, university degree, college name, and parents' details.
+* **Academic Performance:** Registered Credits, Earned Credits, **SGPA**, and **CGPA**.
+* **Subject Breakdown Table:** Course codes, course names, credits, and retro Neobrutalist grade badges (`O`, `A+`, `A`, `B+`, `B`, `F`).
+* **Print / Save as PDF:** Clean print styles for grade card export.
 
-### 2. ✏️ [HTTP POST] Record Management & Simulation
-* **Create & Update Student Records:** Submit an HTTP `POST` request to `/api/records` to store modified marks, simulated revaluations, or custom student profiles.
-* **Dynamic Subject Editor:** Add, remove, and update course credits and grades in real time.
-* **Pre-fill from Live Results:** Click *"Modify via POST"* on any fetched student semester to instantly load their data into the editor.
+### 2. 🎯 Raw Component-Wise Marks Inspector (`getBriefResults`)
+* **Unveils Internal & External Assessment Marks:** Unlocks raw marks that students usually don't see on the standard grade card:
+  * **End-Term Exam Marks**
+  * **Mid-Term Exam Marks**
+  * **Continuous Assessment (CA) Marks**
+  * **Practical Lab Scores** (e.g. 97/100, 94/100, 45.5/50)
+* **Semester Switcher:** Inspect assessment breakdowns across any semester.
 
-### 3. 💾 [Local Database] Persisted Store
-* Inspect, search, and manage all records created via `POST`.
-* Directly cross-reference stored records with live GET queries.
+### 3. ⏳ Academic Timeline & Degree Progression (`getResultSummaryDetailsnew`)
+* **Degree History & Milestones:** Chronological transcript across all examination cycles (`D-2026-1`, `C-2025-4`, `B-2025-1`, `A-2024-4`).
+* **Official Publication Dates:** Precise result publication and examination session dates (`01/07/2026`, `03/02/2026`, `14/07/2025`, `28/04/2026`).
+* **Result Status:** Verification tags and class standing.
+
+### 4. ⚖️ Re-Evaluation (RV) & Challenge Portal (`showRVExam`)
+* **Review-Eligible Exam Cycles:** Direct lookup of examination sessions mapped for review.
+* **Academic Regulations (Clause 13.2):** Official rules regarding the 5-working-day review window, photocopy guidelines, and grading scales.
 
 ---
 
 ## 🛠️ Tech Stack
 * **Framework:** Next.js 16 (App Router)
-* **Styling:** Tailwind CSS with custom Neobrutalism utilities (hard offsets, sharp black borders, high-contrast palette)
+* **Styling:** Tailwind CSS with custom Neobrutalism utilities
 * **Icons:** Lucide React
-* **Backend:** Next.js Route Handlers (`/api/results`, `/api/records`)
+* **Backend:** Next.js Route Handlers (`/api/results`)
 
 ---
 
 ## 💻 Local Development
 
 ```bash
-# 1. Install dependencies
-npm install
-
-# 2. Run the development server
+cd ~/Downloads/😆😆😆/neores
 npm run dev
-
-# 3. Open in your browser
-# Visit http://localhost:3000
 ```
+Open **[http://localhost:3000](http://localhost:3000)** in your browser.
 
 ---
 
-## 🌐 Deploying to Vercel
+## 🌐 Deploy to Vercel
 
-### Option 1: Via Vercel CLI
-```bash
-npx vercel
-```
-
-### Option 2: Via GitHub Integration
-1. Push this repository to GitHub.
-2. Go to [vercel.com](https://vercel.com) and click **"Add New Project"**.
-3. Import this repository and click **Deploy**.
+1. Push to your GitHub repository.
+2. Go to **[vercel.com/new](https://vercel.com/new)**.
+3. Import **`sxfiyan/neo-res`** and click **Deploy**.
