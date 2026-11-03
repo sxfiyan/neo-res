@@ -129,8 +129,13 @@ export async function fetchBriefResults(
     if (!res.ok) return [];
 
     const json = await res.json();
-    if (json?.error_code === 0 && json?.data?.data && Array.isArray(json.data.data)) {
-      return json.data.data.map((item: any, idx: number) => {
+    const rawList =
+      (Array.isArray(json?.data?.data) ? json.data.data : null) ||
+      (Array.isArray(json?.data?.tables?.[0]?.data) ? json.data.tables[0].data : null) ||
+      (Array.isArray(json?.data) ? json.data : []);
+
+    if (rawList.length > 0) {
+      return rawList.map((item: any, idx: number) => {
         const components: Array<{ component: string; score: string }> = [];
         const subnames = Array.isArray(item.ssubname) ? item.ssubname : [item.ssubname || "Total"];
         const marks = Array.isArray(item.marks) ? item.marks : [item.marks || "—"];
@@ -249,6 +254,19 @@ export async function fetchSemesterDetails(
     grade: s.grade || "—",
   }));
 
+  const enrichedComponentMarks = componentMarks.map((comp) => {
+    const matchedSubject = subjects.find(
+      (s) =>
+        s.subname.trim().toLowerCase() === comp.subname.trim().toLowerCase() ||
+        s.slno === comp.slno
+    );
+    return {
+      ...comp,
+      subshort: matchedSubject?.subshort || "",
+      grade: matchedSubject?.grade || "—",
+    };
+  });
+
   const result: SemesterResult = {
     yearmode,
     examname: stud.examname || "Semester",
@@ -259,7 +277,7 @@ export async function fetchSemesterDetails(
     sgpa: metrics.sgpa,
     cgpa: metrics.cgpa,
     subjects,
-    componentMarks,
+    componentMarks: enrichedComponentMarks,
   };
 
   return { student, result };

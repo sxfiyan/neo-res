@@ -15,8 +15,24 @@ import {
   Sun,
   Moon,
   HelpCircle,
+  Calculator,
+  Sliders,
+  RotateCcw,
+  Info,
 } from "lucide-react";
 import { StudentFullProfile, SemesterResult } from "@/lib/types";
+import { calculateCourseScores, CourseScoreBreakdown } from "@/lib/marksCalculator";
+
+function getGradeFromTotal(total: number): string {
+  if (total >= 180) return "O";
+  if (total >= 160) return "A+";
+  if (total >= 140) return "A";
+  if (total >= 120) return "B+";
+  if (total >= 110) return "B";
+  if (total >= 100) return "C";
+  if (total >= 80) return "D";
+  return "F";
+}
 
 export default function Home() {
   const [theme, setTheme] = useState<"dark" | "light">("dark");
@@ -27,6 +43,8 @@ export default function Home() {
   const [getError, setGetError] = useState<string | null>(null);
   const [requestLog, setRequestLog] = useState<{ time: number; status: number } | null>(null);
   const [selectedSemesterIdx, setSelectedSemesterIdx] = useState<number>(0);
+  const [simulationValues, setSimulationValues] = useState<Record<string, number>>({});
+  const [showSimulator, setShowSimulator] = useState<Record<string, boolean>>({});
 
   // Sync theme with HTML data-theme attribute
   useEffect(() => {
@@ -465,10 +483,10 @@ export default function Home() {
                   RAW ASSESSMENT SCORES
                 </span>
                 <h2 className="text-xl md:text-2xl font-black uppercase mt-1.5 neu-text-primary">
-                  Internal & External Component Scores
+                  Course Component Marks Breakdown
                 </h2>
                 <p className="text-xs font-mono neu-text-muted mt-1 font-medium">
-                  Direct breakdown for End-Term, Mid-Term, Continuous Assessment (CA), and Practicals.
+                  200-Mark Unified Evaluation: Continuous Assessment (CA) + Midterm + Calculated Endterm.
                 </p>
               </div>
 
@@ -489,40 +507,330 @@ export default function Home() {
               </div>
             </div>
 
+            {/* 200-Mark Formula Architecture Banner */}
+            <div className="neu-inset p-4 md:p-5 rounded-2xl mb-6">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 neu-divider-b">
+                <div className="flex items-center gap-2">
+                  <Calculator className="w-5 h-5 neu-text-primary" />
+                  <span className="font-mono text-xs font-black uppercase neu-text-primary">
+                    200-Mark Evaluation Architecture
+                  </span>
+                </div>
+                <span className="neu-pill font-mono text-xs font-bold px-3 py-0.5 neu-text-primary">
+                  CA (50) + MIDTERM (50) + ENDTERM (100) = 200 MARKS
+                </span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3 text-xs font-mono">
+                <div className="neu-flat p-3">
+                  <span className="block font-bold neu-text-primary">1. CA / Assignment (50)</span>
+                  <span className="text-[11px] neu-text-muted mt-0.5 block">
+                    Continuous internal assignments, quizzes & coursework.
+                  </span>
+                </div>
+                <div className="neu-flat p-3">
+                  <span className="block font-bold neu-text-primary">2. Midterm Exam (50)</span>
+                  <span className="text-[11px] neu-text-muted mt-0.5 block">
+                    Mid-semester written test evaluating course knowledge.
+                  </span>
+                </div>
+                <div className="neu-flat p-3">
+                  <span className="block font-bold neu-text-primary">3. Endterm Exam (100)</span>
+                  <span className="text-[11px] neu-text-muted mt-0.5 block">
+                    Derived from official awarded grade & percentage threshold.
+                  </span>
+                </div>
+              </div>
+            </div>
+
             {currentSemester && currentSemester.componentMarks && currentSemester.componentMarks.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {currentSemester.componentMarks.map((item, idx) => (
-                  <div key={idx} className="neu-flat p-5 flex flex-col justify-between">
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="font-mono text-[11px] font-bold neu-text-muted">
-                          COURSE #{item.slno}
-                        </span>
-                        <span className="neu-pill-inset font-mono text-[10px] px-2.5 py-0.5 neu-text-secondary font-bold">
-                          {item.components.length} ASSESSMENTS
-                        </span>
-                      </div>
+                {currentSemester.componentMarks.map((item, idx) => {
+                  const matchedSubject = currentSemester.subjects.find(
+                    (s) =>
+                      s.subname.trim().toLowerCase() === item.subname.trim().toLowerCase() ||
+                      s.slno === item.slno
+                  );
 
-                      <h4 className="font-black text-sm neu-text-primary uppercase mb-4">
-                        {item.subname}
-                      </h4>
-                    </div>
+                  const courseKey = `${currentSemester.yearmode}-${item.slno}`;
+                  const breakdown = calculateCourseScores(
+                    item.slno,
+                    item.subname,
+                    item.subshort || matchedSubject?.subshort || "",
+                    item.grade || matchedSubject?.grade || "—",
+                    item.components
+                  );
 
-                    <div className="space-y-2 pt-3 neu-divider-t">
-                      {item.components.map((comp, cIdx) => (
-                        <div
-                          key={cIdx}
-                          className="neu-inset-sm px-3 py-2 flex items-center justify-between font-mono text-xs"
-                        >
-                          <span className="neu-text-secondary font-bold">{comp.component}</span>
-                          <span className="neu-pill font-black px-2.5 py-0.5 neu-text-primary">
-                            {comp.score} MARKS
+                  // Simulated Endterm value if active
+                  const isSimulating = showSimulator[courseKey] || false;
+                  const simEndterm =
+                    simulationValues[courseKey] !== undefined
+                      ? simulationValues[courseKey]
+                      : breakdown.endtermScore ?? 50;
+
+                  const effectiveEndterm = isSimulating ? simEndterm : breakdown.endtermScore;
+                  const effectiveTotal =
+                    !breakdown.isPractical && effectiveEndterm !== undefined
+                      ? Math.round(((breakdown.internalTotal ?? 0) + effectiveEndterm) * 10) / 10
+                      : breakdown.totalScore;
+                  const effectiveGrade =
+                    isSimulating && typeof effectiveTotal === "number"
+                      ? getGradeFromTotal(effectiveTotal)
+                      : breakdown.grade;
+
+                  return (
+                    <div key={idx} className="neu-flat p-5 flex flex-col justify-between">
+                      <div>
+                        {/* Course Header */}
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-[11px] font-bold neu-text-muted">
+                              #{item.slno}
+                            </span>
+                            {breakdown.subshort && (
+                              <span className="neu-pill-inset font-mono text-[10px] font-bold px-2 py-0.5 neu-text-primary">
+                                {breakdown.subshort}
+                              </span>
+                            )}
+                            <span className="neu-pill font-mono text-[10px] px-2 py-0.5 neu-text-secondary font-bold">
+                              {breakdown.isPractical ? "100M PRACTICAL" : "200M EVALUATION"}
+                            </span>
+                          </div>
+
+                          <span className={`inline-block text-xs ${getGradeBadge(effectiveGrade)}`}>
+                            {effectiveGrade}
                           </span>
                         </div>
-                      ))}
+
+                        <h4 className="font-black text-sm neu-text-primary uppercase mb-4 leading-snug">
+                          {item.subname}
+                        </h4>
+                      </div>
+
+                      {/* Marks Breakdown */}
+                      <div className="space-y-3 pt-3 neu-divider-t">
+                        {breakdown.isPractical ? (
+                          /* Practical / Lab Single 100M Evaluation */
+                          <div className="neu-inset-sm p-3 font-mono text-xs space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="neu-text-secondary font-bold">
+                                Practical & Continuous Lab Evaluation
+                              </span>
+                              <span className="neu-pill font-black px-2.5 py-0.5 neu-text-primary">
+                                {breakdown.practicalScore} / 100 MARKS
+                              </span>
+                            </div>
+                            <div className="w-full bg-black/10 dark:bg-white/10 h-2 rounded-full overflow-hidden">
+                              <div
+                                className="bg-current h-full rounded-full transition-all"
+                                style={{
+                                  width: `${Math.min(
+                                    100,
+                                    Math.max(0, Number(breakdown.practicalScore) || 0)
+                                  )}%`,
+                                }}
+                              />
+                            </div>
+                          </div>
+                        ) : (
+                          /* Theory Course 200M Three Components */
+                          <>
+                            {/* Component 1: CA (Continuous Assessment / Assignment) */}
+                            <div className="neu-inset-sm p-3 font-mono text-xs space-y-1.5">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <span className="neu-text-primary font-bold block">
+                                    1. CA (Continuous Assessment)
+                                  </span>
+                                  <span className="neu-text-muted text-[10px] font-medium">
+                                    Assignments, quizzes & coursework
+                                  </span>
+                                </div>
+                                <span className="neu-pill font-black px-2.5 py-0.5 neu-text-primary">
+                                  {breakdown.caScore !== undefined ? `${breakdown.caScore} / 50` : "—"}
+                                </span>
+                              </div>
+                              {breakdown.caScore !== undefined && (
+                                <div className="w-full bg-black/10 dark:bg-white/10 h-1.5 rounded-full overflow-hidden">
+                                  <div
+                                    className="bg-current h-full rounded-full"
+                                    style={{
+                                      width: `${Math.min(100, (breakdown.caScore / 50) * 100)}%`,
+                                    }}
+                                  />
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Component 2: Midterm Exam */}
+                            <div className="neu-inset-sm p-3 font-mono text-xs space-y-1.5">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <span className="neu-text-primary font-bold block">
+                                    2. Midterm Examination
+                                  </span>
+                                  <span className="neu-text-muted text-[10px] font-medium">
+                                    Mid-semester formal evaluation
+                                  </span>
+                                </div>
+                                <span className="neu-pill font-black px-2.5 py-0.5 neu-text-primary">
+                                  {breakdown.midtermScore !== undefined
+                                    ? `${breakdown.midtermScore} / 50`
+                                    : "—"}
+                                </span>
+                              </div>
+                              {breakdown.midtermScore !== undefined && (
+                                <div className="w-full bg-black/10 dark:bg-white/10 h-1.5 rounded-full overflow-hidden">
+                                  <div
+                                    className="bg-current h-full rounded-full"
+                                    style={{
+                                      width: `${Math.min(100, (breakdown.midtermScore / 50) * 100)}%`,
+                                    }}
+                                  />
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Component 3: Endterm Exam (Calculated) */}
+                            <div className="neu-inset-sm p-3 font-mono text-xs space-y-1.5">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="neu-text-primary font-bold">
+                                      3. Endterm Examination
+                                    </span>
+                                    <span className="neu-pill-inset text-[9px] px-1.5 py-0.2 font-bold neu-text-secondary">
+                                      {isSimulating ? "SIMULATED" : "CALCULATED"}
+                                    </span>
+                                  </div>
+                                  <span className="neu-text-muted text-[10px] font-medium block">
+                                    {isSimulating
+                                      ? "Adjust slider below to simulate outcome"
+                                      : `Est. range: ${breakdown.endtermMin ?? 0}–${breakdown.endtermMax ?? 100} based on ${breakdown.grade}`}
+                                  </span>
+                                </div>
+                                <span className="neu-pill font-black px-2.5 py-0.5 neu-text-primary">
+                                  {effectiveEndterm !== undefined ? `~${effectiveEndterm} / 100` : "—"}
+                                </span>
+                              </div>
+                              {effectiveEndterm !== undefined && (
+                                <div className="w-full bg-black/10 dark:bg-white/10 h-1.5 rounded-full overflow-hidden">
+                                  <div
+                                    className="bg-current h-full rounded-full"
+                                    style={{
+                                      width: `${Math.min(100, (effectiveEndterm / 100) * 100)}%`,
+                                    }}
+                                  />
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Interactive Simulation Slider (if toggled) */}
+                            {isSimulating && (
+                              <div className="neu-inset p-3 rounded-xl font-mono text-xs space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <span className="neu-text-secondary font-bold flex items-center gap-1">
+                                    <Sliders className="w-3.5 h-3.5" />
+                                    Simulate Endterm Mark:
+                                  </span>
+                                  <span className="neu-pill font-black px-2 py-0.5 neu-text-primary">
+                                    {effectiveEndterm} / 100
+                                  </span>
+                                </div>
+                                <input
+                                  type="range"
+                                  min="0"
+                                  max="100"
+                                  step="0.5"
+                                  value={effectiveEndterm ?? 50}
+                                  onChange={(e) =>
+                                    setSimulationValues((prev) => ({
+                                      ...prev,
+                                      [courseKey]: parseFloat(e.target.value),
+                                    }))
+                                  }
+                                  className="w-full cursor-pointer accent-current"
+                                />
+                                <div className="flex justify-between text-[10px] neu-text-muted font-bold">
+                                  <span>0</span>
+                                  <span>50</span>
+                                  <span>100</span>
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        )}
+
+                        {/* Combined Total Surface */}
+                        <div className="neu-inset p-3.5 rounded-xl font-mono text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="neu-text-muted uppercase text-[10px] font-bold">
+                                {breakdown.isPractical
+                                  ? "Course Total (out of 100)"
+                                  : "Unified Total (out of 200)"}
+                              </span>
+                              {isSimulating && (
+                                <span className="neu-pill-inset text-[9px] px-1.5 py-0.2 font-bold neu-text-secondary">
+                                  SIMULATED
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-lg font-black neu-text-primary block mt-0.5">
+                              {effectiveTotal} / {breakdown.maxTotal} MARKS
+                            </span>
+                            {!breakdown.isPractical && (
+                              <span className="text-[10px] neu-text-muted font-medium">
+                                {breakdown.caScore ?? 0} (CA) + {breakdown.midtermScore ?? 0} (Mid) +{" "}
+                                {effectiveEndterm ?? 0} (End)
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-2 self-end sm:self-center">
+                            {!breakdown.isPractical && (
+                              <button
+                                onClick={() => {
+                                  setShowSimulator((prev) => ({
+                                    ...prev,
+                                    [courseKey]: !prev[courseKey],
+                                  }));
+                                  if (isSimulating) {
+                                    setSimulationValues((prev) => {
+                                      const next = { ...prev };
+                                      delete next[courseKey];
+                                      return next;
+                                    });
+                                  }
+                                }}
+                                className="neu-btn px-2.5 py-1 text-[10px] font-mono font-bold flex items-center gap-1 neu-text-primary"
+                                title="Toggle What-If Endterm simulator"
+                              >
+                                {isSimulating ? (
+                                  <>
+                                    <RotateCcw className="w-3 h-3" />
+                                    RESET
+                                  </>
+                                ) : (
+                                  <>
+                                    <Sliders className="w-3 h-3" />
+                                    WHAT-IF
+                                  </>
+                                )}
+                              </button>
+                            )}
+                            <span
+                              className={`inline-block font-black px-2.5 py-1 ${getGradeBadge(
+                                effectiveGrade
+                              )}`}
+                            >
+                              {effectiveGrade}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="neu-inset p-10 text-center">

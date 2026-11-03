@@ -14,6 +14,8 @@ export interface ComponentMark {
 export interface SubjectComponentMarks {
   slno: number;
   subname: string;
+  subshort?: string;
+  grade?: string;
   components: ComponentMark[];
 }
 
