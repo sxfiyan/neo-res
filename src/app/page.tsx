@@ -22,17 +22,12 @@ import { StudentFullProfile, SemesterResult } from "@/lib/types";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<"results" | "marks" | "timeline" | "reval">("results");
-  const [searchRegno, setSearchRegno] = useState("20241CCS0134");
+  const [searchRegno, setSearchRegno] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [profile, setProfile] = useState<StudentFullProfile | null>(null);
   const [getError, setGetError] = useState<string | null>(null);
   const [requestLog, setRequestLog] = useState<{ time: number; status: number } | null>(null);
   const [selectedSemesterIdx, setSelectedSemesterIdx] = useState<number>(0);
-
-  // Auto-fetch initial student on load
-  useEffect(() => {
-    handleFetchResults("20241CCS0134");
-  }, []);
 
   const handleFetchResults = async (regnoTarget?: string) => {
     const target = (regnoTarget || searchRegno).trim().toUpperCase();
@@ -147,39 +142,10 @@ export default function Home() {
             </button>
           </form>
 
-          {/* Quick Roll Number Chips */}
-          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-mono font-bold">
-            <span className="text-neutral-600 uppercase">Quick Lookup:</span>
-            <button
-              type="button"
-              onClick={() => {
-                setSearchRegno("20241CCS0134");
-                handleFetchResults("20241CCS0134");
-              }}
-              className="neo-border-sm bg-white px-2.5 py-1 hover:bg-black hover:text-white transition-colors"
-            >
-              👉 20241CCS0134 (Sufiyan)
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setSearchRegno("20241CCS0167");
-                handleFetchResults("20241CCS0167");
-              }}
-              className="neo-border-sm bg-[#38bdf8] px-2.5 py-1 hover:bg-black hover:text-white transition-colors"
-            >
-              👉 20241CCS0167
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setSearchRegno("20251CCS0103");
-                handleFetchResults("20251CCS0103");
-              }}
-              className="neo-border-sm bg-[#4ade80] px-2.5 py-1 hover:bg-black hover:text-white transition-colors"
-            >
-              👉 20251CCS0103
-            </button>
+          {/* Privacy-Safe Input Guideline */}
+          <div className="mt-3 flex items-center gap-2 text-xs font-mono font-bold text-neutral-700">
+            <span className="bg-white border-2 border-black px-2 py-0.5">FORMAT</span>
+            <span>Enter any valid university registration number (e.g. 20241XXXXXXX) to retrieve records securely.</span>
           </div>
         </div>
 
@@ -255,6 +221,40 @@ export default function Home() {
           <div>
             <h3 className="font-black uppercase text-base">Query Failed</h3>
             <p className="font-mono text-sm mt-1">{getError}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Empty State / Welcome Screen */}
+      {!profile && !isLoading && !getError && (
+        <div className="neo-border bg-white p-8 md:p-12 neo-shadow-lg text-center mb-8">
+          <div className="w-16 h-16 bg-[#ffe600] neo-border flex items-center justify-center mx-auto mb-4 neo-shadow-sm">
+            <Search className="w-8 h-8 text-black" />
+          </div>
+          <h2 className="text-2xl md:text-4xl font-black uppercase tracking-tight mb-2">
+            No Student Record Selected
+          </h2>
+          <p className="font-bold text-neutral-600 max-w-lg mx-auto text-sm md:text-base mb-6">
+            Enter your university registration / roll number in the search bar above to fetch your complete academic profile, grades, raw marks, and degree history.
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-left font-mono text-xs max-w-3xl mx-auto">
+            <div className="neo-border-sm bg-[#fefce8] p-3 neo-shadow-sm">
+              <span className="font-black text-black block mb-1">1. GRADE CARDS</span>
+              <span className="text-neutral-600">Full provisional grade cards with SGPA & CGPA.</span>
+            </div>
+            <div className="neo-border-sm bg-[#eff6ff] p-3 neo-shadow-sm">
+              <span className="font-black text-black block mb-1">2. RAW MARKS</span>
+              <span className="text-neutral-600">End-Term, Mid-Term, CA, & Practical scores.</span>
+            </div>
+            <div className="neo-border-sm bg-[#f0fdf4] p-3 neo-shadow-sm">
+              <span className="font-black text-black block mb-1">3. DEGREE TIMELINE</span>
+              <span className="text-neutral-600">Historical declaration dates & milestones.</span>
+            </div>
+            <div className="neo-border-sm bg-[#fdf2f8] p-3 neo-shadow-sm">
+              <span className="font-black text-black block mb-1">4. REVALUATION</span>
+              <span className="text-neutral-600">Review eligibility & regulation rules.</span>
+            </div>
           </div>
         </div>
       )}
