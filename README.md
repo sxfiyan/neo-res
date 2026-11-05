@@ -21,21 +21,26 @@ A **Neomorphism (Soft UI)** web portal built with **Next.js 16 (App Router)** an
 * **Subject Breakdown Table:** Course codes, titles, credits, and monochromatic Neomorphic grade badges (`O`, `A+`, `A`, `B+`, `B`, `F`).
 * **Print / Save as PDF:** One-click clean A4 printable export.
 
-### 2. 🎯 Raw Component-Wise Marks Inspector (`getBriefResults`)
-* **Unveils Internal & External Assessment Scores:**
-  * **End-Term Exam Marks**
-  * **Mid-Term Exam Marks**
-  * **Continuous Assessment (CA) Marks**
-  * **Practical Lab Scores**
-* **Semester Switcher:** Toggle between any semester to inspect raw scores.
+### 2. 🎯 Raw Component-Wise Marks Breakdown (`getBriefResults`)
+* **200-Mark Unified Evaluation Formula:**
+  $$\text{CA (out of 50)} + \text{MIDTERM (out of 50)} + \text{ENDTERM (out of 100)} = 200 \text{ MARKS TOTAL}$$
+* **Continuous Assessment (CA):** Assignments, quizzes, and coursework scores.
+* **Midterm Examination:** Mid-semester written test scores.
+* **Endterm Examination (Calculated):** Derived from official awarded grade thresholds with minimum/maximum score bounds.
+* **Interactive What-If Simulator:** Live slider to simulate how hypothetical End-Term scores impact the final letter grade.
 
-### 3. ⏳ Degree Timeline & Examination Milestones (`getResultSummaryDetailsnew`)
-* **Transcript Milestones:** Chronological milestones across all examination cycles (`D-2026-1`, `C-2025-4`, `B-2025-1`, `A-2024-4`).
+### 3. 📖 Evaluated Answer Scripts & Mid-Term Marksheet (`scriptView.php`)
+* **Digital Valuation System (DVS) Gateway:** Direct integration with `https://dvs1.pgi-intraconnect.in`.
+* **Verified Mid-Term Secured Marks:** Official course-by-course secured marks out of 50.
+* **High-Resolution Answer Booklets:** Direct one-click access to actual page-by-page scanned answer booklets with evaluator markings and question allocations.
+
+### 4. ⏳ Degree Timeline & Examination Milestones (`getResultSummaryDetailsnew`)
+* **Transcript Milestones:** Chronological milestones across all examination cycles.
 * **Official Publication Dates:** Precise result publication dates and verified class standings.
 
-### 4. ⚖️ Re-Evaluation (RV) & Regulations Portal (`showRVExam`)
+### 5. ⚖️ Re-Evaluation (RV) & Regulations Portal (`showRVExam`)
 * **Review-Eligible Exam Cycles:** Direct lookup of examination sessions open for challenge review.
-* **Academic Regulations (Clause 13.2):** Official rules regarding the 5-working-day review window and digital answer script view.
+* **Academic Regulations (Clause 13.2):** Official rules regarding the 5-working-day review window and digital script inspection.
 
 ---
 
@@ -51,6 +56,8 @@ Open **[http://localhost:3000](http://localhost:3000)** in your browser.
 
 ## 🌐 Deploy to Vercel
 
-1. Push to your GitHub repository.
-2. Go to **[vercel.com/new](https://vercel.com/new)**.
-3. Import **`sxfiyan/neo-res`** and click **Deploy**.
+1. Push to GitHub (`main` branch):
+   ```bash
+   git push origin main
+   ```
+2. Connected to Vercel via **`sxfiyan/neo-res`** with automatic CI/CD deployment on every push.
