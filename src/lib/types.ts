@@ -57,10 +57,29 @@ export interface SemesterHistoryItem {
   color?: string;
 }
 
+export interface AnswerScriptItem {
+  slno: number;
+  subshort: string;
+  subname: string;
+  secMarks: string;
+  qpcode?: string;
+  dummyno?: string;
+  valno?: string;
+  scriptUrl?: string;
+}
+
+export interface AnswerScriptSheet {
+  available: boolean;
+  studentName?: string;
+  regno?: string;
+  scripts: AnswerScriptItem[];
+}
+
 export interface StudentFullProfile {
   regno: string;
   student: StudentDetail;
   semesters: SemesterResult[];
   history: SemesterHistoryItem[];
+  answerScripts?: AnswerScriptSheet;
   lastUpdated?: string;
 }

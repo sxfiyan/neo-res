@@ -19,6 +19,8 @@ import {
   Sliders,
   RotateCcw,
   Info,
+  BookOpen,
+  ExternalLink,
 } from "lucide-react";
 import { StudentFullProfile, SemesterResult } from "@/lib/types";
 import { calculateCourseScores, CourseScoreBreakdown } from "@/lib/marksCalculator";
@@ -36,7 +38,7 @@ function getGradeFromTotal(total: number): string {
 
 export default function Home() {
   const [theme, setTheme] = useState<"dark" | "light">("dark");
-  const [activeTab, setActiveTab] = useState<"results" | "marks" | "timeline" | "reval">("results");
+  const [activeTab, setActiveTab] = useState<"results" | "marks" | "scripts" | "timeline" | "reval">("results");
   const [searchRegno, setSearchRegno] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [profile, setProfile] = useState<StudentFullProfile | null>(null);
@@ -192,45 +194,55 @@ export default function Home() {
         </div>
 
         {/* Tactile Navigation Tabs */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 mt-8 pt-6 neu-divider-t">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 mt-8 pt-6 neu-divider-t">
           <button
             onClick={() => setActiveTab("results")}
-            className={`neu-btn py-3 px-3 text-xs md:text-sm font-bold flex items-center justify-center gap-2 ${
+            className={`neu-btn py-3 px-2 text-xs md:text-sm font-bold flex items-center justify-center gap-1.5 ${
               activeTab === "results" ? "neu-btn-active font-black" : "neu-text-secondary"
             }`}
           >
-            <Award className="w-4 h-4" />
+            <Award className="w-4 h-4 shrink-0" />
             1. GRADE CARDS ({profile ? profile.semesters.length : 0})
           </button>
 
           <button
             onClick={() => setActiveTab("marks")}
-            className={`neu-btn py-3 px-3 text-xs md:text-sm font-bold flex items-center justify-center gap-2 ${
+            className={`neu-btn py-3 px-2 text-xs md:text-sm font-bold flex items-center justify-center gap-1.5 ${
               activeTab === "marks" ? "neu-btn-active font-black" : "neu-text-secondary"
             }`}
           >
-            <BarChart3 className="w-4 h-4" />
+            <BarChart3 className="w-4 h-4 shrink-0" />
             2. RAW MARKS
           </button>
 
           <button
+            onClick={() => setActiveTab("scripts")}
+            className={`neu-btn py-3 px-2 text-xs md:text-sm font-bold flex items-center justify-center gap-1.5 ${
+              activeTab === "scripts" ? "neu-btn-active font-black" : "neu-text-secondary"
+            }`}
+          >
+            <BookOpen className="w-4 h-4 shrink-0" />
+            3. DVS SCRIPTS ({profile?.answerScripts?.scripts.length || 0})
+          </button>
+
+          <button
             onClick={() => setActiveTab("timeline")}
-            className={`neu-btn py-3 px-3 text-xs md:text-sm font-bold flex items-center justify-center gap-2 ${
+            className={`neu-btn py-3 px-2 text-xs md:text-sm font-bold flex items-center justify-center gap-1.5 ${
               activeTab === "timeline" ? "neu-btn-active font-black" : "neu-text-secondary"
             }`}
           >
-            <Clock className="w-4 h-4" />
-            3. TIMELINE ({profile ? profile.history.length : 0})
+            <Clock className="w-4 h-4 shrink-0" />
+            4. TIMELINE ({profile ? profile.history.length : 0})
           </button>
 
           <button
             onClick={() => setActiveTab("reval")}
-            className={`neu-btn py-3 px-3 text-xs md:text-sm font-bold flex items-center justify-center gap-2 ${
+            className={`neu-btn py-3 px-2 text-xs md:text-sm font-bold flex items-center justify-center gap-1.5 ${
               activeTab === "reval" ? "neu-btn-active font-black" : "neu-text-secondary"
             }`}
           >
-            <ShieldCheck className="w-4 h-4" />
-            4. REVALUATION
+            <ShieldCheck className="w-4 h-4 shrink-0" />
+            5. REVALUATION
           </button>
         </div>
       </header>
@@ -845,7 +857,141 @@ export default function Home() {
       )}
 
       {/* =========================================================================
-          FEATURE 3: DEGREE TIMELINE (getResultSummaryDetailsnew)
+          FEATURE 3: DIGITAL VALUATION SYSTEM (DVS) & SCRIPT VIEW (scriptView.php)
+          ========================================================================= */}
+      {activeTab === "scripts" && profile && (
+        <section className="space-y-6">
+          <div className="neu-card p-6 md:p-8">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-5 neu-divider-b gap-3 mb-6">
+              <div>
+                <span className="neu-pill-inset font-mono text-xs font-bold px-3 py-0.5 neu-text-primary">
+                  DIGITAL VALUATION SYSTEM (DVS)
+                </span>
+                <h2 className="text-xl md:text-2xl font-black uppercase mt-1.5 neu-text-primary">
+                  Evaluated Answer Scripts & Mid-Term Marksheet
+                </h2>
+                <p className="text-xs font-mono neu-text-muted mt-1 font-medium">
+                  Direct extraction from university scriptView.php with high-resolution digital answer booklets.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="neu-pill font-mono text-xs font-bold px-3 py-1 neu-text-primary">
+                  {profile.answerScripts?.scripts.length || 0} BOOKLETS FOUND
+                </span>
+              </div>
+            </div>
+
+            {/* Architecture Banner */}
+            <div className="neu-inset p-4 md:p-5 rounded-2xl mb-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 neu-divider-b">
+                <div className="flex items-center gap-2">
+                  <BookOpen className="w-5 h-5 neu-text-primary" />
+                  <span className="font-mono text-xs font-black uppercase neu-text-primary">
+                    Digital Script Inspection Gateway
+                  </span>
+                </div>
+                <span className="neu-pill-inset font-mono text-xs font-bold px-3 py-0.5 neu-text-secondary">
+                  GATEWAY: dvs1.pgi-intraconnect.in
+                </span>
+              </div>
+              <p className="text-xs font-mono neu-text-muted mt-3 leading-relaxed">
+                Evaluated answer scripts feature actual page-by-page scanned booklets containing examiner red markings, question-by-question mark allocations, and secured totals out of 50.
+              </p>
+            </div>
+
+            {profile.answerScripts && profile.answerScripts.scripts.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {profile.answerScripts.scripts.map((item, idx) => (
+                  <div key={idx} className="neu-flat p-5 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-[11px] font-bold neu-text-muted">
+                            #{item.slno}
+                          </span>
+                          <span className="neu-pill-inset font-mono text-[10px] font-bold px-2 py-0.5 neu-text-primary">
+                            {item.subshort}
+                          </span>
+                        </div>
+                        <span className="neu-pill font-mono text-[10px] px-2 py-0.5 neu-text-primary font-bold">
+                          MID-TERM EXAM
+                        </span>
+                      </div>
+
+                      <h4 className="font-black text-sm neu-text-primary uppercase mb-4 leading-snug">
+                        {item.subname}
+                      </h4>
+                    </div>
+
+                    <div className="space-y-3 pt-3 neu-divider-t">
+                      {/* Secured Marks Inset Box */}
+                      <div className="neu-inset-sm p-3 font-mono text-xs space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="neu-text-secondary font-bold">
+                            Secured Mid-Term Score:
+                          </span>
+                          <span className="neu-pill font-black px-2.5 py-0.5 neu-text-primary">
+                            {item.secMarks} / 50 MARKS
+                          </span>
+                        </div>
+                        <div className="w-full bg-black/10 dark:bg-white/10 h-1.5 rounded-full overflow-hidden">
+                          <div
+                            className="bg-current h-full rounded-full"
+                            style={{
+                              width: `${Math.min(
+                                100,
+                                ((parseFloat(item.secMarks) || 0) / 50) * 100
+                              )}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Answer Booklet Link Button */}
+                      {item.scriptUrl ? (
+                        <div className="space-y-2">
+                          <a
+                            href={item.scriptUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="neu-btn w-full py-2.5 px-4 font-mono text-xs font-bold flex items-center justify-center gap-2 neu-text-primary group hover:neu-btn-active transition-all"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                            VIEW EVALUATED ANSWER BOOKLET
+                          </a>
+                          <div className="flex items-center justify-between text-[10px] font-mono neu-text-muted px-1">
+                            <span>QP: {item.qpcode || "—"}</span>
+                            <span>Dummy: {item.dummyno || "—"}</span>
+                            <span>Val: #{item.valno || "1"}</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="neu-inset-sm p-2.5 text-center font-mono text-[11px] neu-text-muted">
+                          Answer booklet digital scan not available
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="neu-inset p-10 text-center">
+                <BookOpen className="w-10 h-10 mx-auto neu-text-muted mb-2" />
+                <p className="font-mono text-sm neu-text-secondary font-bold">
+                  No published answer scripts found on DVS for this registration number.
+                </p>
+                <p className="font-mono text-xs neu-text-muted mt-1">
+                  Answer booklets are accessible when the university digital script review window is active.
+                </p>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* =========================================================================
+          FEATURE 4: DEGREE TIMELINE (getResultSummaryDetailsnew)
           ========================================================================= */}
       {activeTab === "timeline" && profile && (
         <section className="space-y-6">
@@ -906,7 +1052,7 @@ export default function Home() {
       )}
 
       {/* =========================================================================
-          FEATURE 4: REVALUATION PORTAL (showRVExam)
+          FEATURE 5: REVALUATION PORTAL (showRVExam)
           ========================================================================= */}
       {activeTab === "reval" && profile && (
         <section className="space-y-6">
@@ -957,8 +1103,16 @@ export default function Home() {
                 <div className="p-3 neu-flat">
                   <strong className="neu-text-primary">1. 5-Day Window:</strong> No request for review of grade(s) or challenge valuation shall be admissible after <strong>five (5) University working days</strong> from the date of declaration of results.
                 </div>
-                <div className="p-3 neu-flat">
-                  <strong className="neu-text-primary">2. Digital Script View:</strong> Evaluated answer booklets can be accessed when active. Outside this period, the valuation system returns <em>&quot;Date are not Enabled&quot;</em>.
+                <div className="p-3 neu-flat flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <strong className="neu-text-primary">2. Digital Script View:</strong> Evaluated answer booklets can be accessed directly in the DVS Scripts tab.
+                  </div>
+                  <button
+                    onClick={() => setActiveTab("scripts")}
+                    className="neu-btn px-3 py-1.5 text-xs font-mono font-bold shrink-0 neu-text-primary"
+                  >
+                    GO TO DVS SCRIPTS →
+                  </button>
                 </div>
                 <div className="p-3 neu-flat">
                   <strong className="neu-text-primary">3. Integrity:</strong> Altering or tampering with provisional result grade cards is strictly prohibited.

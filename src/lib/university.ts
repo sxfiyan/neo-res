@@ -1,4 +1,6 @@
 import {
+  AnswerScriptItem,
+  AnswerScriptSheet,
   SemesterHistoryItem,
   SemesterResult,
   StudentDetail,
@@ -284,16 +286,109 @@ export async function fetchSemesterDetails(
 }
 
 /**
- * Fetches the entire student profile across all semesters + historical timeline
+ * Fetches published digital answer scripts and mid-term marks via scriptView.php
+ */
+export async function fetchAnswerScripts(
+  token: string,
+  regno: string
+): Promise<AnswerScriptSheet> {
+  const url = `https://coe.pgi-intraconnect.in/pubapi/scriptView.php?regno=${encodeURIComponent(
+    regno
+  )}&token=${encodeURIComponent(token)}`;
+
+  try {
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+      },
+      cache: "no-store",
+    });
+
+    if (!res.ok) return { available: false, scripts: [] };
+
+    const html = await res.text();
+    if (!html || html.includes("Invalid Register No") || html.includes("No Record")) {
+      return { available: false, scripts: [] };
+    }
+
+    // Extract student name if present
+    const nameMatch = html.match(/Student Name:\s*<span><b>\s*([^<]+)\s*<\/b><\/span>/i);
+    const studentName = nameMatch ? nameMatch[1].trim() : undefined;
+
+    // Extract table rows
+    const tableMatch = html.match(/<table class=['"]table table-bordered['"][\s\S]*?<\/table>/i);
+    if (!tableMatch) {
+      return { available: false, studentName, regno, scripts: [] };
+    }
+
+    const rowMatches = Array.from(tableMatch[0].matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi));
+    const scripts: AnswerScriptItem[] = [];
+
+    for (let i = 1; i < rowMatches.length; i++) {
+      const rowHtml = rowMatches[i][1];
+      const cells = Array.from(rowHtml.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)).map((m) =>
+        m[1].trim()
+      );
+
+      if (cells.length >= 4) {
+        const slno = parseInt(cells[0].replace(/<[^>]+>/g, "").trim(), 10) || i;
+        const subshort = cells[1].replace(/<[^>]+>/g, "").trim();
+        const subname = cells[2].replace(/<[^>]+>/g, "").trim();
+        const secMarks = cells[3].replace(/<[^>]+>/g, "").trim();
+
+        let qpcode: string | undefined;
+        let dummyno: string | undefined;
+        let valno: string | undefined;
+        let scriptUrl: string | undefined;
+
+        // Extract showDetailedScript("qpcode", "dummyno", "valno")
+        const scriptMatch = (cells[4] || rowHtml).match(
+          /showDetailedScript\s*\(\s*['"]([^'"]+)['"]\s*,\s*['"]([^'"]+)['"]\s*,\s*['"]([^'"]+)['"]\s*\)/i
+        );
+
+        if (scriptMatch) {
+          qpcode = scriptMatch[1];
+          dummyno = scriptMatch[2];
+          valno = scriptMatch[3];
+          scriptUrl = `https://dvs1.pgi-intraconnect.in/#/ans-book/${qpcode}/${dummyno}/${valno}`;
+        }
+
+        scripts.push({
+          slno,
+          subshort,
+          subname,
+          secMarks,
+          qpcode,
+          dummyno,
+          valno,
+          scriptUrl,
+        });
+      }
+    }
+
+    return {
+      available: scripts.length > 0,
+      studentName,
+      regno,
+      scripts,
+    };
+  } catch {
+    return { available: false, scripts: [] };
+  }
+}
+
+/**
+ * Fetches the entire student profile across all semesters + historical timeline + answer scripts
  */
 export async function fetchAllStudentResults(regno: string): Promise<StudentFullProfile> {
   const normRegno = regno.trim().toUpperCase();
   const token = await fetchStudentToken(normRegno);
 
-  // Run history & exam listings in parallel
-  const [history, exams] = await Promise.all([
+  // Run history, exam listings & scriptView in parallel
+  const [history, exams, answerScripts] = await Promise.all([
     fetchResultSummaryHistory(token, normRegno),
     fetchStudentExams(token, normRegno),
+    fetchAnswerScripts(token, normRegno),
   ]);
 
   const semesters: SemesterResult[] = [];
@@ -338,6 +433,7 @@ export async function fetchAllStudentResults(regno: string): Promise<StudentFull
     student: studentDetail,
     semesters,
     history,
+    answerScripts,
     lastUpdated: new Date().toISOString(),
   };
 }
