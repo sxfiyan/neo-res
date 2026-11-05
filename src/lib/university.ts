@@ -5,6 +5,7 @@ import {
   SemesterResult,
   StudentDetail,
   StudentFullProfile,
+  StudentExamSession,
   Subject,
   SubjectComponentMarks,
 } from "./types";
@@ -169,7 +170,7 @@ export async function fetchBriefResults(
 export async function fetchStudentExams(
   token: string,
   regno: string
-): Promise<Array<{ yearmode: string; examname: string; examdate?: string; name?: string }>> {
+): Promise<StudentExamSession[]> {
   const url = `${BASE_URL}?db=pub&a=showRVExam%20%20&regno=${encodeURIComponent(
     regno
   )}&univcode=${UNIV_CODE}`;
@@ -433,6 +434,7 @@ export async function fetchAllStudentResults(regno: string): Promise<StudentFull
     student: studentDetail,
     semesters,
     history,
+    examSessions: exams,
     answerScripts,
     lastUpdated: new Date().toISOString(),
   };

@@ -57,6 +57,13 @@ export interface SemesterHistoryItem {
   color?: string;
 }
 
+export interface StudentExamSession {
+  yearmode: string;
+  examname: string;
+  examdate?: string;
+  name?: string;
+}
+
 export interface AnswerScriptItem {
   slno: number;
   subshort: string;
@@ -80,6 +87,7 @@ export interface StudentFullProfile {
   student: StudentDetail;
   semesters: SemesterResult[];
   history: SemesterHistoryItem[];
+  examSessions?: StudentExamSession[];
   answerScripts?: AnswerScriptSheet;
   lastUpdated?: string;
 }

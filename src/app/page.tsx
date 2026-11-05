@@ -38,7 +38,7 @@ function getGradeFromTotal(total: number): string {
 
 export default function Home() {
   const [theme, setTheme] = useState<"dark" | "light">("dark");
-  const [activeTab, setActiveTab] = useState<"results" | "marks" | "scripts" | "timeline" | "reval">("results");
+  const [activeTab, setActiveTab] = useState<"results" | "marks" | "scripts" | "timeline" | "reval" | "services">("results");
   const [searchRegno, setSearchRegno] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [profile, setProfile] = useState<StudentFullProfile | null>(null);
@@ -194,7 +194,7 @@ export default function Home() {
         </div>
 
         {/* Tactile Navigation Tabs */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 mt-8 pt-6 neu-divider-t">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 mt-8 pt-6 neu-divider-t">
           <button
             onClick={() => setActiveTab("results")}
             className={`neu-btn py-3 px-2 text-xs md:text-sm font-bold flex items-center justify-center gap-1.5 ${
@@ -243,6 +243,16 @@ export default function Home() {
           >
             <ShieldCheck className="w-4 h-4 shrink-0" />
             5. REVALUATION
+          </button>
+
+          <button
+            onClick={() => setActiveTab("services")}
+            className={`neu-btn py-3 px-2 text-xs md:text-sm font-bold flex items-center justify-center gap-1.5 ${
+              activeTab === "services" ? "neu-btn-active font-black" : "neu-text-secondary"
+            }`}
+          >
+            <ExternalLink className="w-4 h-4 shrink-0" />
+            6. COE SERVICES
           </button>
         </div>
       </header>
@@ -1070,27 +1080,35 @@ export default function Home() {
             </div>
 
             <h3 className="font-mono text-xs font-bold uppercase neu-text-secondary mb-3">
-              Examination Sessions Mapped for Student Review:
+              Examination sessions returned by the COE review lookup:
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-              {profile.semesters.map((sem, idx) => (
+              {(profile.examSessions || []).map((session, idx) => (
                 <div key={idx} className="neu-flat p-5">
                   <div className="flex items-center justify-between mb-2">
                     <span className="neu-pill-inset font-mono text-xs font-bold px-2.5 py-0.5 neu-text-primary">
-                      CYCLE: {sem.yearmode}
+                      CYCLE: {session.yearmode || "—"}
                     </span>
                     <span className="neu-pill font-mono text-[10px] font-bold px-2 py-0.5 neu-text-primary">
-                      ELIGIBLE
+                      COE LISTING
                     </span>
                   </div>
-                  <h4 className="font-bold text-base uppercase neu-text-primary">{sem.examname}</h4>
-                  <p className="font-mono text-xs neu-text-muted mt-1 font-medium">
-                    Declaration: {sem.resdate || "Official Publication"}
-                  </p>
+                  <h4 className="font-bold text-base uppercase neu-text-primary">{session.examname || session.name || "Examination session"}</h4>
+                  {session.examdate && (
+                    <p className="font-mono text-xs neu-text-muted mt-1 font-medium">
+                      Examination date: {session.examdate}
+                    </p>
+                  )}
                 </div>
               ))}
             </div>
+
+            {(!profile.examSessions || profile.examSessions.length === 0) && (
+              <div className="neu-inset p-5 mb-8 font-mono text-xs neu-text-secondary">
+                The COE review lookup returned no examination sessions for this profile.
+              </div>
+            )}
 
             {/* Academic Regulations Extract */}
             <div className="neu-inset p-6 rounded-2xl">
@@ -1101,7 +1119,7 @@ export default function Home() {
 
               <div className="space-y-3 font-sans text-xs md:text-sm neu-text-secondary leading-relaxed">
                 <div className="p-3 neu-flat">
-                  <strong className="neu-text-primary">1. 5-Day Window:</strong> No request for review of grade(s) or challenge valuation shall be admissible after <strong>five (5) University working days</strong> from the date of declaration of results.
+                  <strong className="neu-text-primary">1. Review deadline:</strong> The university review form states a three-university-working-day window for eligible theory courses. Deadlines can vary by examination notice, so confirm the current window in the official COE portal before acting.
                 </div>
                 <div className="p-3 neu-flat flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
@@ -1114,11 +1132,64 @@ export default function Home() {
                     GO TO DVS SCRIPTS →
                   </button>
                 </div>
-                <div className="p-3 neu-flat">
-                  <strong className="neu-text-primary">3. Integrity:</strong> Altering or tampering with provisional result grade cards is strictly prohibited.
+                <div className="p-3 neu-flat flex flex-wrap items-center justify-between gap-3">
+                  <span><strong className="neu-text-primary">3. Official review form:</strong> Check the university form and current notice for eligibility, process, and fees.</span>
+                  <a
+                    href="https://presidencyexams.com/notification/Application_for_Review_of_the_Grade_Awarded.pdf"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="neu-btn px-3 py-1.5 text-xs font-mono font-bold shrink-0 neu-text-primary inline-flex items-center gap-1.5"
+                  >
+                    OPEN FORM <ExternalLink className="w-3 h-3" />
+                  </a>
                 </div>
               </div>
             </div>
+          </div>
+        </section>
+      )}
+
+      {activeTab === "services" && profile && (
+        <section className="space-y-6">
+          <div className="neu-card p-6 md:p-8">
+            <div className="pb-5 neu-divider-b mb-6">
+              <span className="neu-pill-inset font-mono text-xs font-bold px-3 py-0.5 neu-text-primary">
+                OFFICIAL COE PORTAL
+              </span>
+              <h2 className="text-xl md:text-2xl font-black uppercase mt-1.5 neu-text-primary">
+                Applications & Examination Services
+              </h2>
+              <p className="text-xs font-mono neu-text-muted mt-1 font-medium">
+                Open the university portal to view eligibility, application status, deadlines, and available actions.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {[
+                { label: "Makeup Examination Application", path: "#/examapp", detail: "View available makeup exam applications and their status." },
+                { label: "Grade Review / Retotalling", path: "#/rvrt", detail: "Check review windows, application availability, and reports." },
+                { label: "Summer Term Registration", path: "#/summer-registration", detail: "View summer-term exam registration availability and status." },
+                { label: "Re-Registration", path: "#/part-registration", detail: "Open the COE re-registration page." },
+              ].map((service) => (
+                <a
+                  key={service.path}
+                  href={`https://coe.pgi-intraconnect.in/${service.path}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="neu-flat p-5 flex items-start justify-between gap-4 neu-text-primary hover:neu-btn-active transition-all"
+                >
+                  <span>
+                    <span className="font-black text-sm uppercase block">{service.label}</span>
+                    <span className="font-mono text-xs neu-text-secondary block mt-2">{service.detail}</span>
+                  </span>
+                  <ExternalLink className="w-4 h-4 shrink-0 mt-0.5" />
+                </a>
+              ))}
+            </div>
+
+            <p className="neu-inset p-4 mt-6 font-mono text-xs neu-text-secondary">
+              Applications and payments remain on the official university site. NEO-RES only opens these portal pages; it does not submit or pay for anything.
+            </p>
           </div>
         </section>
       )}

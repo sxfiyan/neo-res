@@ -39,8 +39,9 @@ A **Neomorphism (Soft UI)** web portal built with **Next.js 16 (App Router)** an
 * **Official Publication Dates:** Precise result publication dates and verified class standings.
 
 ### 5. ⚖️ Re-Evaluation (RV) & Regulations Portal (`showRVExam`)
-* **Review-Eligible Exam Cycles:** Direct lookup of examination sessions open for challenge review.
-* **Academic Regulations (Clause 13.2):** Official rules regarding the 5-working-day review window and digital script inspection.
+* **COE Review Session Lookup:** Displays examination sessions returned by the university's review endpoint without treating the listing as an eligibility decision.
+* **COE Application Services:** Shortcuts to the official makeup, grade review/retotalling, summer-term, and re-registration pages. Applications and payments remain on the university portal.
+* **Review Guidance:** Links to the university's review form and directs students to check the current examination notice for deadlines and eligibility.
 
 ---
 
