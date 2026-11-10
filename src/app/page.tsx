@@ -45,6 +45,7 @@ export default function Home() {
   >("results");
   const [searchRegno, setSearchRegno] = useState("");
   const [directorySearch, setDirectorySearch] = useState("");
+  const [directorySeries, setDirectorySeries] = useState("all");
   const [isLoading, setIsLoading] = useState(false);
   const [profile, setProfile] = useState<StudentFullProfile | null>(null);
   const [getError, setGetError] = useState<string | null>(null);
@@ -95,11 +96,24 @@ export default function Home() {
       ? profile.semesters[selectedSemesterIdx]
       : null;
 
-  const filteredStudents = directorySearch.trim()
-    ? studentDirectory.filter((student) =>
-        student.name.toLowerCase().includes(directorySearch.trim().toLowerCase())
-      )
-    : studentDirectory;
+  const availableSeries = Array.from(
+    new Set(
+      studentDirectory.map((student) => {
+        const series = student.registerNumber.match(/^\d{5}/)?.[0];
+        return series || "OTHER";
+      })
+    )
+  ).sort();
+
+  const normalizedDirectorySearch = directorySearch.trim().toLowerCase();
+  const filteredStudents = studentDirectory.filter((student) => {
+    const matchesName =
+      !normalizedDirectorySearch || student.name.toLowerCase().includes(normalizedDirectorySearch);
+    const studentSeries = student.registerNumber.match(/^\d{5}/)?.[0] || "OTHER";
+    const matchesSeries = directorySeries === "all" || studentSeries === directorySeries;
+
+    return matchesName && matchesSeries;
+  });
 
   // Adaptive High-Contrast Monochromatic Grade Badges
   const getGradeBadge = (grade: string) => {
@@ -349,7 +363,7 @@ export default function Home() {
                 Names & Registration Numbers
               </h2>
               <p className="text-xs font-mono neu-text-muted mt-1 font-medium">
-                Search the imported student list by name to find the matching register number.
+                Search by name or filter registration numbers by series.
               </p>
             </div>
             <span className="neu-pill font-mono text-xs font-bold px-3 py-1 neu-text-primary shrink-0">
@@ -357,16 +371,36 @@ export default function Home() {
             </span>
           </div>
 
-          <div className="relative mt-6">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 neu-text-muted" />
-            <input
-              type="search"
-              value={directorySearch}
-              onChange={(e) => setDirectorySearch(e.target.value)}
-              placeholder="Search student name..."
-              aria-label="Search student name"
-              className="w-full neu-inset pl-11 pr-5 py-4 font-mono text-sm font-bold tracking-wide uppercase focus:outline-none neu-text-primary placeholder:neu-text-muted"
-            />
+          <div className="grid gap-3 mt-6 md:grid-cols-[minmax(0,1fr)_13rem]">
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 neu-text-muted" />
+              <input
+                type="search"
+                value={directorySearch}
+                onChange={(e) => setDirectorySearch(e.target.value)}
+                placeholder="Search student name..."
+                aria-label="Search student name"
+                className="w-full neu-inset pl-11 pr-5 py-4 font-mono text-sm font-bold tracking-wide uppercase focus:outline-none neu-text-primary placeholder:neu-text-muted"
+              />
+            </div>
+            <label className="flex flex-col gap-1.5">
+              <span className="font-mono text-[10px] font-bold uppercase neu-text-muted">
+                Registration series
+              </span>
+              <select
+                value={directorySeries}
+                onChange={(e) => setDirectorySeries(e.target.value)}
+                aria-label="Filter by registration series"
+                className="w-full neu-inset px-4 py-4 font-mono text-sm font-bold tracking-wide focus:outline-none cursor-pointer neu-text-primary"
+              >
+                <option value="all">All series</option>
+                {availableSeries.map((series) => (
+                  <option key={series} value={series}>
+                    {series === "OTHER" ? "Other formats" : series}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
 
           <div className="neu-inset p-2 rounded-2xl overflow-x-auto mt-6">
@@ -403,7 +437,7 @@ export default function Home() {
 
             {filteredStudents.length === 0 && (
               <div className="p-10 text-center font-mono text-sm neu-text-secondary font-bold">
-                No student names match this search.
+                No students match the selected search and series.
               </div>
             )}
           </div>
