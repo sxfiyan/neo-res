@@ -43,6 +43,15 @@ A **Neomorphism (Soft UI)** web portal built with **Next.js 16 (App Router)** an
 * **COE Application Services:** Shortcuts to the official makeup, grade review/retotalling, summer-term, and re-registration pages. Applications and payments remain on the university portal.
 * **Review Guidance:** Links to the university's review form and directs students to check the current examination notice for deadlines and eligibility.
 
+### 6. 👥 Student Directory
+* **Identity-only directory:** Includes 8,264 unique student names and register numbers imported from the supplied workbooks.
+* **Alphabetical ordering:** Names are normalized, deduplicated by register number, and sorted in ascending name order.
+* **Name search:** Search the directory by student name to reveal the matching register number.
+* **Results handoff:** Use a directory entry's register number to populate the existing results lookup field.
+
+### Student Data Sources
+The directory source workbooks are kept local and are intentionally excluded from Git with `*.xlsx` and `*.xls` rules in `.gitignore`. Only the student name and register number fields are included in the committed application data module at `src/lib/studentDirectory.ts`.
+
 ---
 
 ## 💻 Local Development

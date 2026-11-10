@@ -21,9 +21,11 @@ import {
   Info,
   BookOpen,
   ExternalLink,
+  Users,
 } from "lucide-react";
 import { StudentFullProfile, SemesterResult } from "@/lib/types";
 import { calculateCourseScores, CourseScoreBreakdown } from "@/lib/marksCalculator";
+import { studentDirectory } from "@/lib/studentDirectory";
 
 function getGradeFromTotal(total: number): string {
   if (total >= 180) return "O";
@@ -38,8 +40,11 @@ function getGradeFromTotal(total: number): string {
 
 export default function Home() {
   const [theme, setTheme] = useState<"dark" | "light">("dark");
-  const [activeTab, setActiveTab] = useState<"results" | "marks" | "scripts" | "timeline" | "reval" | "services">("results");
+  const [activeTab, setActiveTab] = useState<
+    "results" | "marks" | "scripts" | "timeline" | "reval" | "services" | "directory"
+  >("results");
   const [searchRegno, setSearchRegno] = useState("");
+  const [directorySearch, setDirectorySearch] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [profile, setProfile] = useState<StudentFullProfile | null>(null);
   const [getError, setGetError] = useState<string | null>(null);
@@ -89,6 +94,12 @@ export default function Home() {
     profile && profile.semesters[selectedSemesterIdx]
       ? profile.semesters[selectedSemesterIdx]
       : null;
+
+  const filteredStudents = directorySearch.trim()
+    ? studentDirectory.filter((student) =>
+        student.name.toLowerCase().includes(directorySearch.trim().toLowerCase())
+      )
+    : studentDirectory;
 
   // Adaptive High-Contrast Monochromatic Grade Badges
   const getGradeBadge = (grade: string) => {
@@ -194,7 +205,17 @@ export default function Home() {
         </div>
 
         {/* Tactile Navigation Tabs */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 mt-8 pt-6 neu-divider-t">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2.5 mt-8 pt-6 neu-divider-t">
+          <button
+            onClick={() => setActiveTab("directory")}
+            className={`neu-btn py-3 px-2 text-xs md:text-sm font-bold flex items-center justify-center gap-1.5 ${
+              activeTab === "directory" ? "neu-btn-active font-black" : "neu-text-secondary"
+            }`}
+          >
+            <Users className="w-4 h-4 shrink-0" />
+            DIRECTORY ({studentDirectory.length})
+          </button>
+
           <button
             onClick={() => setActiveTab("results")}
             className={`neu-btn py-3 px-2 text-xs md:text-sm font-bold flex items-center justify-center gap-1.5 ${
@@ -284,7 +305,7 @@ export default function Home() {
       {/* =========================================================================
           EMPTY STATE / WELCOME WELL
           ========================================================================= */}
-      {!profile && !isLoading && !getError && (
+      {!profile && !isLoading && !getError && activeTab !== "directory" && (
         <div className="neu-card p-10 md:p-14 text-center mb-8">
           <div className="w-20 h-20 neu-inset rounded-full flex items-center justify-center mx-auto mb-6">
             <Search className="w-8 h-8 neu-text-secondary" />
@@ -317,10 +338,82 @@ export default function Home() {
         </div>
       )}
 
+      {activeTab === "directory" && (
+        <section className="neu-card p-6 md:p-8 mb-8">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-5 neu-divider-b">
+            <div>
+              <span className="neu-pill-inset font-mono text-xs font-bold px-3 py-0.5 neu-text-primary">
+                STUDENT DIRECTORY
+              </span>
+              <h2 className="text-xl md:text-2xl font-black uppercase mt-1.5 neu-text-primary">
+                Names & Registration Numbers
+              </h2>
+              <p className="text-xs font-mono neu-text-muted mt-1 font-medium">
+                Search the imported student list by name to find the matching register number.
+              </p>
+            </div>
+            <span className="neu-pill font-mono text-xs font-bold px-3 py-1 neu-text-primary shrink-0">
+              {filteredStudents.length} OF {studentDirectory.length} STUDENTS
+            </span>
+          </div>
+
+          <div className="relative mt-6">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 neu-text-muted" />
+            <input
+              type="search"
+              value={directorySearch}
+              onChange={(e) => setDirectorySearch(e.target.value)}
+              placeholder="Search student name..."
+              aria-label="Search student name"
+              className="w-full neu-inset pl-11 pr-5 py-4 font-mono text-sm font-bold tracking-wide uppercase focus:outline-none neu-text-primary placeholder:neu-text-muted"
+            />
+          </div>
+
+          <div className="neu-inset p-2 rounded-2xl overflow-x-auto mt-6">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="font-mono text-xs uppercase neu-text-secondary neu-divider-b font-bold">
+                  <th className="p-3 w-16 text-center">#</th>
+                  <th className="p-3">Student Name</th>
+                  <th className="p-3">Register Number</th>
+                  <th className="p-3 w-32 text-right">Lookup</th>
+                </tr>
+              </thead>
+              <tbody className="font-mono text-xs">
+                {filteredStudents.map((student, index) => (
+                  <tr key={student.registerNumber} className="neu-divider-b last:border-none hover:bg-black/5">
+                    <td className="p-3 text-center neu-text-muted font-bold">{index + 1}</td>
+                    <td className="p-3 font-sans font-bold neu-text-primary">{student.name}</td>
+                    <td className="p-3 font-bold neu-text-secondary">{student.registerNumber}</td>
+                    <td className="p-3 text-right">
+                      <button
+                        onClick={() => {
+                          setSearchRegno(student.registerNumber);
+                          setActiveTab("results");
+                        }}
+                        className="neu-btn px-2.5 py-1.5 text-[10px] font-mono font-bold neu-text-primary"
+                      >
+                        USE NUMBER
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {filteredStudents.length === 0 && (
+              <div className="p-10 text-center font-mono text-sm neu-text-secondary font-bold">
+                No student names match this search.
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
       {/* =========================================================================
           STUDENT PROFILE CARD (NEOMORPHIC EMBOSSED)
           ========================================================================= */}
-      {profile && (
+      {profile && activeTab !== "directory" && (
         <div className="neu-card p-6 md:p-8 mb-8">
           <div className="flex flex-col md:flex-row gap-6 items-start">
             {profile.student.photopath ? (
