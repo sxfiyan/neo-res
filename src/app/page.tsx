@@ -371,22 +371,33 @@ export default function Home() {
             </span>
           </div>
 
-          <div className="grid gap-3 mt-6 md:grid-cols-[minmax(0,1fr)_13rem]">
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 neu-text-muted" />
-              <input
-                type="search"
-                value={directorySearch}
-                onChange={(e) => setDirectorySearch(e.target.value)}
-                placeholder="Search student name..."
-                aria-label="Search student name"
-                className="w-full neu-inset pl-11 pr-5 py-4 font-mono text-sm font-bold tracking-wide uppercase focus:outline-none neu-text-primary placeholder:neu-text-muted"
-              />
-            </div>
-            <label className="flex flex-col gap-1.5">
-              <span className="font-mono text-[10px] font-bold uppercase neu-text-muted">
-                Registration series
+          <div className="mt-6">
+            <div className="flex items-center justify-between mb-2 px-1">
+              <span className="font-mono text-[10px] font-bold uppercase tracking-wider neu-text-muted">
+                Directory filters
               </span>
+              {directorySeries !== "all" && (
+                <button
+                  type="button"
+                  onClick={() => setDirectorySeries("all")}
+                  className="font-mono text-[10px] font-bold uppercase neu-text-secondary hover:underline"
+                >
+                  Clear series
+                </button>
+              )}
+            </div>
+            <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_14rem]">
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 neu-text-muted" />
+                <input
+                  type="search"
+                  value={directorySearch}
+                  onChange={(e) => setDirectorySearch(e.target.value)}
+                  placeholder="Search student name..."
+                  aria-label="Search student name"
+                  className="w-full neu-inset pl-11 pr-5 py-4 font-mono text-sm font-bold tracking-wide uppercase focus:outline-none neu-text-primary placeholder:neu-text-muted"
+                />
+              </div>
               <select
                 value={directorySeries}
                 onChange={(e) => setDirectorySeries(e.target.value)}
@@ -400,7 +411,7 @@ export default function Home() {
                   </option>
                 ))}
               </select>
-            </label>
+            </div>
           </div>
 
           <div className="neu-inset p-2 rounded-2xl overflow-x-auto mt-6">
